@@ -1,1 +1,237 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>こころファミリー</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#17152b;color:white;font-family:sans-serif}
+header{padding:20px;background:linear-gradient(120deg,#49377d,#252d55)}
+h1{margin:0;font-size:23px}
+header p{margin:6px 0 0;font-size:12px}
+main{max-width:750px;margin:auto;padding:14px}
+.panel{background:#292541;border:1px solid #51466e;border-radius:17px;padding:14px;margin-bottom:14px}
+h2{font-size:16px;margin:0 0 12px}
+#room{height:340px;position:relative;overflow:hidden;border:5px solid #9d88c7;border-radius:10px;background:#eadcf8;background-size:22px 22px;touch-action:none}
+#floor{position:absolute;bottom:0;width:100%;height:26%;background:#c69a76;border-top:5px solid #987052}
+.item{position:absolute;z-index:2;display:flex;flex-direction:column;align-items:center;min-width:48px;padding:4px;border-radius:10px;background:#ffffff66;touch-action:none;user-select:none}
+.item span{font-size:29px}
+.item small{font-size:10px;color:#241b35;background:#ffffffcc;border-radius:5px;padding:2px}
+.item.selected{outline:3px solid #ffe58a}
+.controls{display:flex;flex-wrap:wrap;gap:8px}
+button,select{background:#40385e;color:white;border:1px solid #756792;border-radius:10px;padding:10px;font-size:13px}
+button:active{background:#7962b8}
+label{font-size:12px;color:#ddd;display:grid;gap:5px;flex:1;min-width:120px}
+select{width:100%}
+#status{font-size:12px;color:#d8cef9;margin-top:10px;min-height:18px}
+.hint{font-size:11px;color:#c4bddb;line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+<h1>🏡 こころファミリー</h1>
+<p>自分だけのお部屋をデザインしよう</p>
+</header>
+<main>
+<section class="panel">
+<h2>✨ マイルーム</h2>
+<div id="room"><div id="floor"></div></div>
+<p class="hint">家具を指で押さえて動かせるよ。タップすると選択できるよ。</p>
+<div id="status">お部屋づくりを始めよう！</div>
+</section>
+
+<section class="panel">
+<h2>🎨 お部屋のデザイン</h2>
+<div class="controls">
+<label>壁の色
+<select id="wall">
+<option value="#eadcf8">ラベンダー</option>
+<option value="#f7dce8">さくら</option>
+<option value="#d9edff">そら</option>
+<option value="#e0f2d8">ミント</option>
+<option value="#fff0c9">クリーム</option>
+<option value="#d9d4ce">グレー</option>
+<option value="#f4e6d2">ベージュ</option>
+<option value="#d9dafa">すみれ</option>
+</select></label>
+<label>床の色
+<select id="floorColor">
+<option value="#c69a76">木目</option>
+<option value="#d7b7a5">ピンク</option>
+<option value="#a9b7a9">セージ</option>
+<option value="#b5afd0">ラベンダー</option>
+<option value="#b6c8dc">ブルー</option>
+</select></label>
+<label>壁紙
+<select id="pattern">
+<option value="dots">ドット</option>
+<option value="plain">無地</option>
+<option value="stripes">ストライプ</option>
+<option value="stars">星</option>
+<option value="checks">チェック</option>
+<option value="diagonal">ななめ線</option>
+</select></label>
+</div>
+</section>
+
+<section class="panel">
+<h2>🪑 家具を追加</h2>
+<div class="controls" id="catalog">
+<button data-e="🛏️" data-n="ベッド">🛏️ ベッド</button>
+<button data-e="🛋️" data-n="ソファ">🛋️ ソファ</button>
+<button data-e="🪑" data-n="いす">🪑 いす</button>
+<button data-e="🪴" data-n="植物">🪴 植物</button>
+<button data-e="🧸" data-n="くま">🧸 くま</button>
+<button data-e="📚" data-n="本棚">📚 本棚</button>
+<button data-e="🖥️" data-n="デスク">🖥️ デスク</button>
+<button data-e="🪞" data-n="鏡">🪞 鏡</button>
+<button data-e="🕯️" data-n="ランプ">🕯️ ランプ</button>
+<button data-e="🎹" data-n="ピアノ">🎹 ピアノ</button>
+<button data-e="🐱" data-n="ねこ">🐱 ねこ</button>
+<button data-e="🧺" data-n="かご">🧺 かご</button>
+<button data-e="🖼️" data-n="絵">🖼️ 絵</button>
+<button data-e="🌼" data-n="お花">🌼 お花</button>
+<button data-e="🎀" data-n="リボン">🎀 リボン</button>
+<button data-e="🧁" data-n="おやつ">🧁 おやつ</button>
+<button data-e="🚪" data-n="ドア">🚪 ドア</button>
+<button data-e="🪟" data-n="窓">🪟 窓</button>
+</div>
+<p class="hint">家具を追加して、好きな位置に動かしてね。</p>
+<div class="controls">
+<button id="remove">選択した家具を削除</button>
+<button id="reset">初期状態に戻す</button>
+</div>
+</section>
+
+<section class="panel">
+<h2>💾 お部屋を保存</h2>
+<div class="controls">
+<button id="save">この部屋を保存</button>
+<button id="load">保存した部屋を開く</button>
+</div>
+<p class="hint">保存先はこの端末のブラウザだよ。</p>
+</section>
+</main>
+<script>
+const room=document.getElementById("room");
+const floor=document.getElementById("floor");
+const statusBox=document.getElementById("status");
+let selected=null,drag=null;
+
+const patterns={
+dots:"radial-gradient(#bda9dc 1px,transparent 1px)",
+plain:"none",
+stripes:"repeating-linear-gradient(90deg,transparent 0 17px,#ffffff55 18px 20px)",
+stars:"radial-gradient(circle at 20% 30%,#fff8 0 2px,transparent 3px),radial-gradient(circle at 70% 65%,#fff8 0 2px,transparent 3px)",
+checks:"repeating-linear-gradient(0deg,transparent 0 18px,#ffffff55 19px 20px),repeating-linear-gradient(90deg,transparent 0 18px,#ffffff55 19px 20px)",
+diagonal:"repeating-linear-gradient(135deg,transparent 0 15px,#ffffff66 16px 18px)"
+};
+function say(t){statusBox.textContent=t}
+function add(e,n,x=.4,y=.5){
+const el=document.createElement("div");
+el.className="item";
+el.innerHTML="<span>"+e+"</span><small>"+n+"</small>";
+el.dataset.name=n;
+room.appendChild(el);
+move(el,x,y);
+el.addEventListener("pointerdown",start);
+el.addEventListener("click",()=>choose(el));
+return el;
+}
+function move(el,x,y){
+el.style.left=(x*100)+"%";
+el.style.top=(y*100)+"%";
+el.dataset.x=x;el.dataset.y=y;
+}
+function choose(el){
+if(selected)selected.classList.remove("selected");
+selected=el;el.classList.add("selected");
+say(el.dataset.name+"を選択中");
+}
+function start(ev){
+ev.preventDefault();ev.stopPropagation();
+choose(ev.currentTarget);
+drag=ev.currentTarget;
+drag.setPointerCapture(ev.pointerId);
+}
+room.addEventListener("pointermove",ev=>{
+if(!drag)return;
+const r=room.getBoundingClientRect();
+const x=(ev.clientX-r.left)/r.width;
+const y=(ev.clientY-r.top)/r.height;
+move(drag,Math.max(0,Math.min(.88,x)),Math.max(0,Math.min(.78,y)));
+});
+room.addEventListener("pointerup",()=>drag=null);
+room.addEventListener("pointercancel",()=>drag=null);
+
+document.getElementById("catalog").onclick=ev=>{
+const b=ev.target.closest("button");
+if(!b)return;
+const el=add(b.dataset.e,b.dataset.n,.4,.5);
+choose(el);say(b.dataset.n+"を追加したよ！");
+};
+document.getElementById("remove").onclick=()=>{
+if(!selected){say("家具を選んでね");return;}
+selected.remove();selected=null;say("家具を削除したよ");
+};
+document.getElementById("wall").onchange=ev=>{
+room.style.backgroundColor=ev.target.value;
+};
+document.getElementById("floorColor").onchange=ev=>{
+floor.style.backgroundColor=ev.target.value;
+};
+document.getElementById("pattern").onchange=ev=>{
+room.style.backgroundImage=patterns[ev.target.value];
+room.style.backgroundSize=ev.target.value==="dots"?"22px 22px":"auto";
+};
+function snapshot(){
+return {
+wall:document.getElementById("wall").value,
+floor:document.getElementById("floorColor").value,
+pattern:document.getElementById("pattern").value,
+items:[...room.querySelectorAll(".item")].map(el=>({
+emoji:el.querySelector("span").textContent,
+name:el.dataset.name,
+x:+el.dataset.x,y:+el.dataset.y
+}))
+};
+}
+function apply(d){
+room.querySelectorAll(".item").forEach(el=>el.remove());
+document.getElementById("wall").value=d.wall;
+room.style.backgroundColor=d.wall;
+document.getElementById("floorColor").value=d.floor;
+floor.style.backgroundColor=d.floor;
+document.getElementById("pattern").value=d.pattern;
+room.style.backgroundImage=patterns[d.pattern];
+room.style.backgroundSize=d.pattern==="dots"?"22px 22px":"auto";
+(d.items||[]).forEach(f=>add(f.emoji,f.name,f.x,f.y));
+selected=null;
+}
+document.getElementById("save").onclick=()=>{
+try{
+localStorage.setItem("kokoroRoom",JSON.stringify(snapshot()));
+say("保存できたよ！");
+}catch(e){say("保存できなかったよ");}
+};
+document.getElementById("load").onclick=()=>{
+try{
+const d=localStorage.getItem("kokoroRoom");
+if(!d){say("保存データがないよ");return;}
+apply(JSON.parse(d));say("部屋を読み込んだよ！");
+}catch(e){say("読み込みに失敗したよ");}
+};
+document.getElementById("reset").onclick=()=>{
+if(!confirm("部屋を初期状態に戻す？"))return;
+apply({wall:"#eadcf8",floor:"#c69a76",pattern:"dots",items:[]});
+say("初期状態に戻したよ");
+};
+room.style.backgroundColor="#eadcf8";
+floor.style.backgroundColor="#c69a76";
+</script>
+</body>
+</html>
+
+
