@@ -733,7 +733,9 @@ private fun HiyoriApp() {
                         onValueChange = { draft = it },
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("メッセージを入力") },
-                        singleLine = true
+                        singleLine = false,
+                        minLines = 1,
+                        maxLines = 4
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     OutlinedButton(
