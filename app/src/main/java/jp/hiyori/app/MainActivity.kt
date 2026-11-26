@@ -232,9 +232,9 @@ private fun HiyoriApp() {
         }
     }
 
-    val sendMessage: () -> Unit = {
+    val sendMessage: (String?) -> Unit = { messageOverride ->
         
-                                    val text = draft.trim()
+                                    val text = (messageOverride ?: draft).trim()
                                     if (text.isNotEmpty() && !isGenerating) {
                                         val userMessage = ChatMessage(nextId++, text, true)
                                         messages.add(userMessage)
@@ -303,7 +303,7 @@ private fun HiyoriApp() {
                 draft = listOf(draft.trim(), spokenText).filter { it.isNotBlank() }.joinToString(" ")
                 if (autoSendVoice) {
                     status = "音声を認識しました。自動送信します"
-                    sendMessage()
+                    sendMessage(spokenText)
                 } else {
                     status = "音声を文字に変換しました。内容を確認して送信してください"
                 }
@@ -534,7 +534,7 @@ private fun HiyoriApp() {
                     }) { Text("音声") }
                     Spacer(modifier = Modifier.width(6.dp))
                     Button(
-                        onClick = sendMessage,
+                        onClick = { sendMessage(null) },
                         enabled = draft.isNotBlank() && !isGenerating
                     ) { Text("送信") }
                 }
