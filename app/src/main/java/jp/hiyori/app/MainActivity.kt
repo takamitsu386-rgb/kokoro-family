@@ -208,6 +208,8 @@ private fun HiyoriApp() {
 
     var continuousVoice by remember { mutableStateOf(false) }
     var shouldListenAgain by remember { mutableStateOf(false) }
+    var isSpeaking by remember { mutableStateOf(false) }
+    var isListening by remember { mutableStateOf(false) }
 
     LaunchedEffect(speakReplies) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -237,15 +239,19 @@ private fun HiyoriApp() {
         }
         ttsEngine = engine
         engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) = Unit
+            override fun onStart(utteranceId: String?) {
+                if (utteranceId?.startsWith("hiyori_reply_") == true) isSpeaking = true
+            }
             override fun onDone(utteranceId: String?) {
-                if (utteranceId?.startsWith("hiyori_reply_") == true && continuousVoice) {
-                    shouldListenAgain = true
+                if (utteranceId?.startsWith("hiyori_reply_") == true) {
+                    isSpeaking = false
+                    if (continuousVoice) shouldListenAgain = true
                 }
             }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
                 if (utteranceId?.startsWith("hiyori_reply_") == true) {
+                    isSpeaking = false
                     status = "読み上げに失敗しました。連続会話を停止しました"
                     continuousVoice = false
                     shouldListenAgain = false
@@ -329,6 +335,7 @@ private fun HiyoriApp() {
     val speechLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        isListening = false
         if (result.resultCode == Activity.RESULT_OK) {
             val spokenText = result.data
                 ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
@@ -366,6 +373,7 @@ private fun HiyoriApp() {
                     putExtra(RecognizerIntent.EXTRA_PROMPT, "ひよりちゃんに話しかけてください")
                 }
                 speechLauncher.launch(intent)
+                isListening = true
                 status = "どうぞ話してください"
             } catch (_: ActivityNotFoundException) {
                 continuousVoice = false
@@ -454,8 +462,12 @@ private fun HiyoriApp() {
                 }
                 if (continuousVoice) {
                     Text(
-                        text = if (isGenerating) "連続会話中：返事を準備しています"
-                        else "連続会話ON：返事の読み上げ後に聞き取ります",
+                        text = when {
+                            isGenerating -> "連続会話中：返事を準備しています"
+                            isSpeaking -> "連続会話中：ひよりちゃんが話しています"
+                            isListening -> "連続会話中：あなたの声を聞いています"
+                            else -> "連続会話ON：次の入力を準備しています"
+                        },
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -482,6 +494,8 @@ private fun HiyoriApp() {
                             ttsEngine?.stop()
                             continuousVoice = false
                             shouldListenAgain = false
+                            isSpeaking = false
+                            isListening = false
                             status = "読み上げと連続会話を停止しました"
                         },
                         enabled = ttsReady
@@ -608,6 +622,8 @@ private fun HiyoriApp() {
                             if (continuousVoice) {
                                 continuousVoice = false
                                 shouldListenAgain = false
+                                isListening = false
+                                isSpeaking = false
                                 ttsEngine?.stop()
                                 status = "連続会話を停止しました"
                             } else if (!speakReplies || !ttsReady) {
@@ -622,6 +638,7 @@ private fun HiyoriApp() {
                                         putExtra(RecognizerIntent.EXTRA_PROMPT, "ひよりちゃんに話しかけてください")
                                     }
                                     speechLauncher.launch(intent)
+                                    isListening = true
                                     status = "連続会話を開始します"
                                 } catch (error: Exception) {
                                     continuousVoice = false
@@ -646,6 +663,7 @@ private fun HiyoriApp() {
                                 putExtra(RecognizerIntent.EXTRA_PROMPT, "ひよりちゃんに話しかけてください")
                             }
                             speechLauncher.launch(intent)
+                            isListening = true
                             status = "音声入力を開始します"
                         } catch (_: ActivityNotFoundException) {
                             status = "この端末で利用できる音声認識機能が見つかりません"
