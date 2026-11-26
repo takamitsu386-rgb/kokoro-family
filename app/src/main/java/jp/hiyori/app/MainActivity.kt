@@ -308,14 +308,23 @@ private fun HiyoriApp() {
                                                         messages.add(reply)
                                                         saveMessages(context, messages)
                                                         if (ttsReady && speakReplies) {
-                                                            ttsEngine?.speak(
+                                                            val speechResult = ttsEngine?.speak(
                                                                 response,
                                                                 TextToSpeech.QUEUE_FLUSH,
                                                                 null,
                                                                 "hiyori_reply_${reply.id}"
-                                                            )
+                                                            ) ?: TextToSpeech.ERROR
+                                                            if (speechResult == TextToSpeech.ERROR) {
+                                                                isSpeaking = false
+                                                                continuousVoice = false
+                                                                shouldListenAgain = false
+                                                                status = "返事は届きましたが、音声の再生に失敗しました"
+                                                            } else {
+                                                                status = "ひよりちゃんから返事が届きました"
+                                                            }
+                                                        } else {
+                                                            status = "ひよりちゃんから返事が届きました"
                                                         }
-                                                        status = "ひよりちゃんから返事が届きました"
                                                     } else {
                                                         status = "返事を作れませんでした。もう一度送ってください"
                                                         continuousVoice = false
