@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -613,19 +614,21 @@ private fun HiyoriApp() {
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                     )
-                                    Text(
-                                        text = message.text,
-                                        modifier = Modifier
-                                            .widthIn(max = 320.dp)
-                                            .background(
-                                                if (message.isUser) MaterialTheme.colorScheme.primaryContainer
-                                                else MaterialTheme.colorScheme.secondaryContainer,
-                                                RoundedCornerShape(16.dp)
-                                            )
-                                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                                        color = if (message.isUser) MaterialTheme.colorScheme.onPrimaryContainer
-                                        else MaterialTheme.colorScheme.onSecondaryContainer
-                                    )
+                                    SelectionContainer {
+                                        Text(
+                                            text = message.text,
+                                            modifier = Modifier
+                                                .widthIn(max = 320.dp)
+                                                .background(
+                                                    if (message.isUser) MaterialTheme.colorScheme.primaryContainer
+                                                    else MaterialTheme.colorScheme.secondaryContainer,
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                                            color = if (message.isUser) MaterialTheme.colorScheme.onPrimaryContainer
+                                            else MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                    }
                                 }
                             }
                         }
