@@ -499,21 +499,13 @@ private fun HiyoriApp() {
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedTextField(
-                        value = draft,
-                        onValueChange = { draft = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("メッセージを入力") },
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
                     OutlinedButton(
                         onClick = { autoSendVoice = !autoSendVoice },
                         enabled = !isGenerating
-                    ) { Text(if (autoSendVoice) "自動送信ON" else "自動送信OFF") }
+                    ) { Text(if (autoSendVoice) "音声の自動送信ON" else "音声の自動送信OFF") }
                     OutlinedButton(onClick = {
                         try {
                             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -531,7 +523,20 @@ private fun HiyoriApp() {
                         } catch (error: Exception) {
                             status = "音声入力を開始できません: " + (error.localizedMessage ?: "不明なエラー")
                         }
-                    }) { Text("音声") }
+                    }) { Text("音声入力") }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = draft,
+                        onValueChange = { draft = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("メッセージを入力") },
+                        singleLine = true
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Button(
                         onClick = { sendMessage(null) },
