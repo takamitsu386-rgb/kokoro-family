@@ -209,13 +209,6 @@ private fun HiyoriApp() {
     val model = remember { Generation.getClient() }
     val listState = rememberLazyListState()
 
-    LaunchedEffect(messages.size, historyQuery) {
-        // The displayed list may be shorter than the full history while searching.
-        val visibleCount = if (historyQuery.isBlank()) messages.size else
-            messages.count { it.text.contains(historyQuery.trim(), ignoreCase = true) }
-        if (visibleCount > 0) listState.animateScrollToItem(visibleCount - 1)
-    }
-
     var draft by remember(context) {
         mutableStateOf(
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -230,6 +223,12 @@ private fun HiyoriApp() {
     var historyQuery by remember { mutableStateOf("") }
     val filteredMessages = if (historyQuery.isBlank()) messages.toList()
         else messages.filter { it.text.contains(historyQuery.trim(), ignoreCase = true) }
+
+    LaunchedEffect(filteredMessages.size) {
+        if (filteredMessages.isNotEmpty()) {
+            listState.animateScrollToItem(filteredMessages.lastIndex)
+        }
+    }
 
     var nextId by remember { mutableStateOf((messages.maxOfOrNull { it.id } ?: -1) + 1) }
     var status by remember { mutableStateOf("端末内AIの準備状態を確認できます") }
