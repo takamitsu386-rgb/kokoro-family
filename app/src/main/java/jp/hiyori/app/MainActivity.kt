@@ -301,7 +301,9 @@ private fun HiyoriApp() {
     val sendMessage: (String?) -> Unit = { messageOverride ->
         
                                     val text = (messageOverride ?: draft).trim()
-                                    if (text.isNotEmpty() && !isGenerating) {
+                                    if (text.length > 20000) {
+                                        status = "メッセージは20,000文字以内にしてください"
+                                    } else if (text.isNotEmpty() && !isGenerating) {
                                         val userMessage = ChatMessage(nextId++, text, true)
                                         messages.add(userMessage)
                                         saveMessages(context, messages)
@@ -748,7 +750,7 @@ private fun HiyoriApp() {
                 ) {
                     OutlinedTextField(
                         value = draft,
-                        onValueChange = { draft = it },
+                        onValueChange = { draft = it.take(20000) },
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("メッセージを入力") },
                         singleLine = false,
