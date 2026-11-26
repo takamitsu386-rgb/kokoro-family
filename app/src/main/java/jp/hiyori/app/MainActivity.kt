@@ -803,18 +803,18 @@ private fun HiyoriApp() {
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(
                             onSend = {
-                                if (draft.isNotBlank() && !isGenerating) sendMessage(null)
+                                if (draft.isNotBlank() && !isGenerating && !continuousVoice) sendMessage(null)
                             }
                         )
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     OutlinedButton(
                         onClick = { draft = "" },
-                        enabled = draft.isNotEmpty() && !isGenerating
+                        enabled = draft.isNotEmpty() && !isGenerating && !continuousVoice
                     ) { Text("消去") }
                     Button(
                         onClick = { sendMessage(null) },
-                        enabled = draft.isNotBlank() && !isGenerating
+                        enabled = draft.isNotBlank() && !isGenerating && !continuousVoice
                     ) { Text("送信") }
                 }
 
