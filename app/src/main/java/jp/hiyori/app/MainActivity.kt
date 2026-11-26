@@ -134,6 +134,20 @@ private fun createBackup(messages: List<ChatMessage>): String {
         .toString(2)
 }
 
+private fun createTranscript(messages: List<ChatMessage>): String {
+    return buildString {
+        appendLine("ひよりちゃん 会話履歴")
+        appendLine("保存日時: ${java.time.LocalDateTime.now()}")
+        appendLine()
+        messages.forEach { message ->
+            append(if (message.isUser) "あなた" else "ひよりちゃん")
+            appendLine(":")
+            appendLine(message.text)
+            appendLine()
+        }
+    }
+}
+
 private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     val jsonText = context.contentResolver.openInputStream(uri)
         ?.bufferedReader(Charsets.UTF_8)?.use { reader ->
@@ -484,6 +498,21 @@ private fun HiyoriApp() {
         }
     }
 
+    val transcriptLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)
+                    ?.use { it.write(createTranscript(messages.toList())) }
+                    ?: throw IllegalArgumentException("保存先を開けませんでした")
+                status = "会話履歴をテキストで保存しました"
+            } catch (error: Exception) {
+                status = "テキスト保存に失敗しました: ${error.localizedMessage ?: "不明なエラー"}"
+            }
+        }
+    }
+
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -658,6 +687,12 @@ private fun HiyoriApp() {
                         modifier = Modifier.weight(1f)
                     ) { Text("履歴削除") }
                 }
+
+                OutlinedButton(
+                    onClick = { transcriptLauncher.launch("hiyori-chat.txt") },
+                    enabled = messages.isNotEmpty() && !isGenerating,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) { Text("会話履歴をテキスト保存") }
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
