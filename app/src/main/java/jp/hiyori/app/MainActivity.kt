@@ -372,6 +372,13 @@ private fun HiyoriApp() {
                     ) { Text("声を試す") }
                     OutlinedButton(
                         onClick = {
+                            ttsEngine?.stop()
+                            status = "読み上げを停止しました"
+                        },
+                        enabled = ttsReady
+                    ) { Text("読み上げ停止") }
+                    OutlinedButton(
+                        onClick = {
                             scope.launch {
                                 status = "端末内AIの状態を確認しています"
                                 try {
