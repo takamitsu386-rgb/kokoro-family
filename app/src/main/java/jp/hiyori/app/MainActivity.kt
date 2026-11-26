@@ -236,12 +236,13 @@ private fun HiyoriApp() {
     var avatarBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
 
     LaunchedEffect(avatarUri) {
-        avatarBitmap = if (avatarUri == null) {
+        val currentAvatarUri = avatarUri
+        avatarBitmap = if (currentAvatarUri == null) {
             null
         } else {
             withContext(Dispatchers.IO) {
                 try {
-                    val uri = Uri.parse(avatarUri)
+                    val uri = Uri.parse(currentAvatarUri)
                     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     context.contentResolver.openInputStream(uri)?.use {
                         BitmapFactory.decodeStream(it, null, bounds)
