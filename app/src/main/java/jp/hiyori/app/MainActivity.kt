@@ -233,10 +233,12 @@ private fun HiyoriApp() {
         )
     }
     var avatarBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    var avatarLoadFailed by remember { mutableStateOf(false) }
 
     LaunchedEffect(avatarUri) {
         val currentAvatarUri = avatarUri
-        avatarBitmap = if (currentAvatarUri == null) {
+        avatarLoadFailed = false
+        val loadedAvatar = if (currentAvatarUri == null) {
             null
         } else {
             withContext(Dispatchers.IO) {
@@ -258,6 +260,8 @@ private fun HiyoriApp() {
                 }
             }
         }
+        avatarBitmap = loadedAvatar
+        avatarLoadFailed = currentAvatarUri != null && loadedAvatar == null
     }
     val messages = remember(context) {
         mutableStateListOf<ChatMessage>().apply { addAll(loadMessages(context)) }
@@ -673,7 +677,7 @@ private fun HiyoriApp() {
                             )
                         } else {
                             Text(
-                                "画像\n未設定",
+                                if (avatarLoadFailed) "画像を読み込めません\n再登録してください" else "画像\n未設定",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
