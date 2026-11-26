@@ -680,6 +680,14 @@ private fun HiyoriApp() {
                             }
                         }
                     )
+                    if (historyQuery.isNotBlank()) {
+                        Text(
+                            "検索結果：${filteredMessages.size} / ${messages.size}件",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                        )
+                    }
                 }
 
                 if (messages.isEmpty()) {
