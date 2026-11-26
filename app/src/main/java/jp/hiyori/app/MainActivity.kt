@@ -72,6 +72,7 @@ private data class ChatMessage(
 private const val PREFS_NAME = "hiyori_chat"
 private const val MESSAGES_KEY = "messages"
 private const val AUTO_SEND_VOICE_KEY = "auto_send_voice"
+private const val SPEAK_REPLIES_KEY = "speak_replies"
 
 private fun loadMessages(context: Context): List<ChatMessage> {
     val saved = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -193,6 +194,19 @@ private fun HiyoriApp() {
             .edit().putBoolean(AUTO_SEND_VOICE_KEY, autoSendVoice).apply()
     }
 
+    var speakReplies by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(SPEAK_REPLIES_KEY, true)
+        )
+    }
+
+    LaunchedEffect(speakReplies) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putBoolean(SPEAK_REPLIES_KEY, speakReplies).apply()
+        if (!speakReplies) ttsEngine?.stop()
+    }
+
     DisposableEffect(model) {
         onDispose { model.close() }
     }
@@ -256,7 +270,7 @@ private fun HiyoriApp() {
                                                         val reply = ChatMessage(nextId++, response, false)
                                                         messages.add(reply)
                                                         saveMessages(context, messages)
-                                                        if (ttsReady) {
+                                                        if (ttsReady && speakReplies) {
                                                             ttsEngine?.speak(
                                                                 response,
                                                                 TextToSpeech.QUEUE_FLUSH,
@@ -422,6 +436,15 @@ private fun HiyoriApp() {
                         enabled = messages.isNotEmpty(),
                         modifier = Modifier.weight(1f)
                     ) { Text("履歴削除") }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(onClick = { speakReplies = !speakReplies }) {
+                        Text(if (speakReplies) "返事の読み上げON" else "返事の読み上げOFF")
+                    }
                 }
 
                 if (messages.isEmpty()) {
