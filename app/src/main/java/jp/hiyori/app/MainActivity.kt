@@ -71,6 +71,7 @@ private data class ChatMessage(
 
 private const val PREFS_NAME = "hiyori_chat"
 private const val MESSAGES_KEY = "messages"
+private const val AUTO_SEND_VOICE_KEY = "auto_send_voice"
 
 private fun loadMessages(context: Context): List<ChatMessage> {
     val saved = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -180,7 +181,17 @@ private fun HiyoriApp() {
     var showClearDialog by remember { mutableStateOf(false) }
     var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
     var ttsReady by remember { mutableStateOf(false) }
-    var autoSendVoice by remember { mutableStateOf(false) }
+    var autoSendVoice by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(AUTO_SEND_VOICE_KEY, false)
+        )
+    }
+
+    LaunchedEffect(autoSendVoice) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putBoolean(AUTO_SEND_VOICE_KEY, autoSendVoice).apply()
+    }
 
     DisposableEffect(model) {
         onDispose { model.close() }
