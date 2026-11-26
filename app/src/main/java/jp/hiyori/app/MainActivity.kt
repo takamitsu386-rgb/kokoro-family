@@ -564,9 +564,20 @@ private fun HiyoriApp() {
                     uri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
+                val previousAvatarUri = avatarUri
                 avatarUri = uri.toString()
                 context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     .edit().putString(AVATAR_URI_KEY, uri.toString()).apply()
+                if (previousAvatarUri != null && previousAvatarUri != uri.toString()) {
+                    try {
+                        context.contentResolver.releasePersistableUriPermission(
+                            Uri.parse(previousAvatarUri),
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    } catch (_: SecurityException) {
+                        // 古い画像の権限が既に失効していても、新しい画像の登録は維持します。
+                    }
+                }
                 status = "キャラクター画像を登録しました"
             } catch (error: Exception) {
                 status = "画像を登録できませんでした: ${error.localizedMessage ?: "読み取り権限を保存できません"}"
@@ -685,10 +696,21 @@ private fun HiyoriApp() {
                         }) { Text(if (avatarUri == null) "画像を登録" else "画像を変更") }
                         if (avatarUri != null) {
                             TextButton(onClick = {
+                                val previousAvatarUri = avatarUri
                                 avatarUri = null
                                 avatarBitmap = null
                                 context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                                     .edit().remove(AVATAR_URI_KEY).apply()
+                                if (previousAvatarUri != null) {
+                                    try {
+                                        context.contentResolver.releasePersistableUriPermission(
+                                            Uri.parse(previousAvatarUri),
+                                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                        )
+                                    } catch (_: SecurityException) {
+                                        // 既に失効した権限は無視します。
+                                    }
+                                }
                                 status = "キャラクター画像の登録を解除しました"
                             }) { Text("解除") }
                         }
