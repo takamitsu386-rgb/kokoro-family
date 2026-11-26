@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -245,7 +246,9 @@ private fun HiyoriApp() {
                     context.contentResolver.openInputStream(uri)?.use {
                         BitmapFactory.decodeStream(it, null, bounds)
                     }
-                    val sample = maxOf(1, minOf(bounds.outWidth, bounds.outHeight).coerceAtLeast(1) / 512)
+                    var sample = 1
+                    val largestSide = maxOf(bounds.outWidth, bounds.outHeight).coerceAtLeast(1)
+                    while (largestSide / sample > 512) sample *= 2
                     val options = BitmapFactory.Options().apply { inSampleSize = sample }
                     context.contentResolver.openInputStream(uri)?.use {
                         BitmapFactory.decodeStream(it, null, options)?.asImageBitmap()
