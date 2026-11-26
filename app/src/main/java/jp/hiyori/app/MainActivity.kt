@@ -223,6 +223,10 @@ private fun HiyoriApp() {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit().putString(DRAFT_KEY, draft).apply()
     }
+    var historyQuery by remember { mutableStateOf("") }
+    val filteredMessages = if (historyQuery.isBlank()) messages.toList()
+        else messages.filter { it.text.contains(historyQuery.trim(), ignoreCase = true) }
+
     var nextId by remember { mutableStateOf((messages.maxOfOrNull { it.id } ?: -1) + 1) }
     var status by remember { mutableStateOf("端末内AIの準備状態を確認できます") }
     var isGenerating by remember { mutableStateOf(false) }
@@ -661,6 +665,23 @@ private fun HiyoriApp() {
                     }
                 }
 
+                if (messages.isNotEmpty()) {
+                    OutlinedTextField(
+                        value = historyQuery,
+                        onValueChange = { historyQuery = it },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        placeholder = { Text("会話履歴を検索") },
+                        singleLine = true,
+                        trailingIcon = {
+                            if (historyQuery.isNotEmpty()) {
+                                TextButton(onClick = { historyQuery = "" }) {
+                                    Text("クリア")
+                                }
+                            }
+                        }
+                    )
+                }
+
                 if (messages.isEmpty()) {
                     Column(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -686,13 +707,23 @@ private fun HiyoriApp() {
                             }
                         }
                     }
+                } else if (filteredMessages.isEmpty()) {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "一致する会話がありません",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 } else {
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(messages, key = { it.id }) { message ->
+                        items(filteredMessages, key = { it.id }) { message ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
