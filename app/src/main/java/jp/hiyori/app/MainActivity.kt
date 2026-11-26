@@ -547,6 +547,12 @@ private fun HiyoriApp() {
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
+                Text(
+                    text = "会話履歴と入力途中の文章はこの端末に保存されます。音声入力はAndroidの音声認識サービスを利用します。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
