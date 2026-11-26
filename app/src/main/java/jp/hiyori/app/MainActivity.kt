@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.speech.RecognizerIntent
+import android.speech.tts.TextToSpeech
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -43,6 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -116,6 +118,35 @@ private fun HiyoriApp() {
     var nextId by remember { mutableStateOf((messages.maxOfOrNull { it.id } ?: -1) + 1) }
     var status by remember { mutableStateOf("") }
     var showClearDialog by remember { mutableStateOf(false) }
+    var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
+    var ttsReady by remember { mutableStateOf(false) }
+
+    androidx.compose.runtime.DisposableEffect(context) {
+        var engine: TextToSpeech? = null
+        engine = TextToSpeech(context.applicationContext) { result ->
+            if (result == TextToSpeech.SUCCESS) {
+                val languageResult = engine?.setLanguage(Locale.JAPAN)
+                ttsReady = languageResult != TextToSpeech.LANG_MISSING_DATA &&
+                    languageResult != TextToSpeech.LANG_NOT_SUPPORTED &&
+                    languageResult != null
+                if (ttsReady) {
+                    status = "日本語の音声読み上げが使えます"
+                } else {
+                    status = "日本語音声データがありません。端末の音声設定を確認してください"
+                }
+            } else {
+                ttsReady = false
+                status = "音声読み上げを初期化できませんでした"
+            }
+        }
+        ttsEngine = engine
+        onDispose {
+            engine?.stop()
+            engine?.shutdown()
+            ttsEngine = null
+            ttsReady = false
+        }
+    }
 
     val speechLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -202,8 +233,21 @@ private fun HiyoriApp() {
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    OutlinedButton(
+                        onClick = {
+                            ttsEngine?.speak(
+                                "こんにちは。ひよりちゃんです。これからよろしくね。",
+                                TextToSpeech.QUEUE_FLUSH,
+                                null,
+                                "hiyori_voice_preview"
+                            )
+                            status = "ひよりちゃんの声のサンプルを再生しています"
+                        },
+                        enabled = ttsReady,
+                        modifier = Modifier.weight(1f)
+                    ) { Text("声を試す") }
                     OutlinedButton(onClick = {
                         exportLauncher.launch("hiyori-backup.json")
                     }, modifier = Modifier.weight(1f)) { Text("バックアップ") }
@@ -300,7 +344,7 @@ private fun HiyoriApp() {
 
                 Text(
                     text = status.ifBlank {
-                        "音声入力は端末の音声認識機能を利用します。AIの返答・読み上げは未実装です。"
+                        "日本語読み上げは端末の音声合成機能を利用します。AIの返答機能は未実装です。"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
