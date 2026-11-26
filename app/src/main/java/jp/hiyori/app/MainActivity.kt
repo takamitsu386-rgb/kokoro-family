@@ -232,8 +232,8 @@ private fun HiyoriApp() {
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                    horizontalArrangement = Arrangement.Start
                 ) {
                     OutlinedButton(
                         onClick = {
@@ -245,9 +245,14 @@ private fun HiyoriApp() {
                             )
                             status = "ひよりちゃんの声のサンプルを再生しています"
                         },
-                        enabled = ttsReady,
-                        modifier = Modifier.weight(1f)
+                        enabled = ttsReady
                     ) { Text("声を試す") }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     OutlinedButton(onClick = {
                         exportLauncher.launch("hiyori-backup.json")
                     }, modifier = Modifier.weight(1f)) { Text("バックアップ") }
