@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -491,16 +492,29 @@ private fun HiyoriApp() {
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
                             ) {
-                                Text(
-                                    text = message.text,
-                                    modifier = Modifier.background(
-                                        if (message.isUser) MaterialTheme.colorScheme.primaryContainer
-                                        else MaterialTheme.colorScheme.secondaryContainer,
-                                        RoundedCornerShape(16.dp)
-                                    ).padding(horizontal = 14.dp, vertical = 10.dp),
-                                    color = if (message.isUser) MaterialTheme.colorScheme.onPrimaryContainer
-                                    else MaterialTheme.colorScheme.onSecondaryContainer
-                                )
+                                Column(
+                                    horizontalAlignment = if (message.isUser) Alignment.End else Alignment.Start
+                                ) {
+                                    Text(
+                                        text = if (message.isUser) "あなた" else "ひよりちゃん",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                    )
+                                    Text(
+                                        text = message.text,
+                                        modifier = Modifier
+                                            .widthIn(max = 320.dp)
+                                            .background(
+                                                if (message.isUser) MaterialTheme.colorScheme.primaryContainer
+                                                else MaterialTheme.colorScheme.secondaryContainer,
+                                                RoundedCornerShape(16.dp)
+                                            )
+                                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                                        color = if (message.isUser) MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
                             }
                         }
                     }
