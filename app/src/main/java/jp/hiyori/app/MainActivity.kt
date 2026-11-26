@@ -1,5 +1,6 @@
 package jp.hiyori.app
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,7 +29,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import org.json.JSONArray
+import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,11 +46,47 @@ private data class ChatMessage(
     val text: String
 )
 
+private const val PREFS_NAME = "hiyori_chat"
+private const val MESSAGES_KEY = "messages"
+
+private fun loadMessages(context: Context): List<ChatMessage> {
+    val saved = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getString(MESSAGES_KEY, null) ?: return emptyList()
+
+    return try {
+        val json = JSONArray(saved)
+        List(json.length()) { index ->
+            val item = json.getJSONObject(index)
+            ChatMessage(item.getInt("id"), item.getString("text"))
+        }
+    } catch (_: Exception) {
+        emptyList()
+    }
+}
+
+private fun saveMessages(context: Context, messages: List<ChatMessage>) {
+    val json = JSONArray()
+    messages.forEach { message ->
+        json.put(JSONObject().put("id", message.id).put("text", message.text))
+    }
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .putString(MESSAGES_KEY, json.toString())
+        .apply()
+}
+
 @Composable
 private fun HiyoriApp() {
-    val messages = remember { mutableStateListOf<ChatMessage>() }
+    val context = LocalContext.current
+    val messages = remember(context) {
+        mutableStateListOf<ChatMessage>().apply {
+            addAll(loadMessages(context))
+        }
+    }
     var draft by remember { mutableStateOf("") }
-    var nextId by remember { mutableStateOf(0) }
+    var nextId by remember {
+        mutableStateOf((messages.maxOfOrNull { it.id } ?: -1) + 1)
+    }
 
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
@@ -121,6 +161,7 @@ private fun HiyoriApp() {
                             val message = draft.trim()
                             if (message.isNotEmpty()) {
                                 messages.add(ChatMessage(nextId++, message))
+                                saveMessages(context, messages)
                                 draft = ""
                             }
                         },
@@ -131,7 +172,7 @@ private fun HiyoriApp() {
                 }
 
                 Text(
-                    text = "現在は入力・表示のみです。AIの返答、音声、履歴保存はこれから実装します。",
+                    text = "会話はこの端末に保存されます。AIの返答・音声機能は未実装です。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp)
