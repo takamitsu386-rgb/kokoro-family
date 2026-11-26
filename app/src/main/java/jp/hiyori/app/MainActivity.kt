@@ -286,6 +286,8 @@ private fun HiyoriApp() {
                                                         FeatureStatus.DOWNLOADING -> "端末内AIは準備中です。少し待ってから再送信してください"
                                                         else -> "端末内AIを利用できません。AICoreの更新・モデルの準備状態を確認してください"
                                                     }
+                                                    continuousVoice = false
+                                                    shouldListenAgain = false
                                                 } else {
                                                     status = "ひよりちゃんが返事を考えています"
                                                     val prompt = buildHiyoriPrompt(messages.toList())
@@ -305,10 +307,14 @@ private fun HiyoriApp() {
                                                         status = "ひよりちゃんから返事が届きました"
                                                     } else {
                                                         status = "返事を作れませんでした。もう一度送ってください"
+                                                        continuousVoice = false
+                                                        shouldListenAgain = false
                                                     }
                                                 }
                                             } catch (error: Exception) {
                                                 status = "AI応答エラー: ${error.localizedMessage ?: "時間をおいて再試行してください"}"
+                                                continuousVoice = false
+                                                shouldListenAgain = false
                                             } finally {
                                                 isGenerating = false
                                             }
@@ -589,6 +595,8 @@ private fun HiyoriApp() {
                                 shouldListenAgain = false
                                 ttsEngine?.stop()
                                 status = "連続会話を停止しました"
+                            } else if (!speakReplies || !ttsReady) {
+                                status = "連続会話には返事の読み上げが必要です。読み上げONと音声準備を確認してください"
                             } else {
                                 continuousVoice = true
                                 shouldListenAgain = false
