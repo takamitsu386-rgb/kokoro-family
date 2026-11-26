@@ -1,8 +1,12 @@
 package jp.hiyori.app
 
+import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -112,6 +116,22 @@ private fun HiyoriApp() {
     var nextId by remember { mutableStateOf((messages.maxOfOrNull { it.id } ?: -1) + 1) }
     var status by remember { mutableStateOf("") }
     var showClearDialog by remember { mutableStateOf(false) }
+
+    val speechLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spokenText = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+            if (!spokenText.isNullOrBlank()) {
+                draft = listOf(draft.trim(), spokenText).filter { it.isNotBlank() }.joinToString(" ")
+                status = "音声を文字に変換しました。内容を確認して送信してください"
+            } else {
+                status = "音声を認識できませんでした"
+            }
+        }
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -245,7 +265,26 @@ private fun HiyoriApp() {
                         placeholder = { Text("メッセージを入力") },
                         singleLine = true
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    OutlinedButton(onClick = {
+                        try {
+                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                putExtra(
+                                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                                )
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ja-JP")
+                                putExtra(RecognizerIntent.EXTRA_PROMPT, "ひよりちゃんに話しかけてください")
+                            }
+                            speechLauncher.launch(intent)
+                            status = "音声入力を開始します"
+                        } catch (_: ActivityNotFoundException) {
+                            status = "この端末で利用できる音声認識機能が見つかりません"
+                        } catch (error: Exception) {
+                            status = "音声入力を開始できません: " + (error.localizedMessage ?: "不明なエラー")
+                        }
+                    }) { Text("音声") }
+                    Spacer(modifier = Modifier.width(6.dp))
                     Button(
                         onClick = {
                             val message = draft.trim()
@@ -261,7 +300,7 @@ private fun HiyoriApp() {
 
                 Text(
                     text = status.ifBlank {
-                        "履歴は端末内に保存されます。AIの返答・音声機能は未実装です。"
+                        "音声入力は端末の音声認識機能を利用します。AIの返答・読み上げは未実装です。"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
