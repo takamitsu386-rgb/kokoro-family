@@ -185,6 +185,7 @@ private fun HiyoriApp() {
     var status by remember { mutableStateOf("端末内AIの準備状態を確認できます") }
     var isGenerating by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
+    var pendingRestore by remember { mutableStateOf<List<ChatMessage>?>(null) }
     var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
     var ttsReady by remember { mutableStateOf(false) }
     var autoSendVoice by remember(context) {
@@ -405,16 +406,36 @@ private fun HiyoriApp() {
     ) { uri ->
         if (uri != null) {
             try {
-                val restored = readBackup(context, uri)
-                messages.clear()
-                messages.addAll(restored)
-                saveMessages(context, messages)
-                nextId = (messages.maxOfOrNull { it.id } ?: -1) + 1
-                status = "${messages.size}件のメッセージを復元しました"
+                pendingRestore = readBackup(context, uri)
+                status = "バックアップを読み込みました。復元内容を確認してください"
             } catch (error: Exception) {
                 status = "読み込めませんでした: ${error.localizedMessage ?: "形式を確認してください"}"
             }
         }
+    }
+
+    if (pendingRestore != null) {
+        AlertDialog(
+            onDismissRequest = { pendingRestore = null },
+            title = { Text("バックアップを復元しますか？") },
+            text = {
+                Text("現在の会話履歴を置き換えて、${pendingRestore?.size ?: 0}件のメッセージを復元します。現在の履歴を残す場合は、先にバックアップしてください。")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val restored = pendingRestore.orEmpty()
+                    messages.clear()
+                    messages.addAll(restored)
+                    saveMessages(context, messages)
+                    nextId = (messages.maxOfOrNull { it.id } ?: -1) + 1
+                    pendingRestore = null
+                    status = "${messages.size}件のメッセージを復元しました"
+                }) { Text("復元する") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRestore = null }) { Text("キャンセル") }
+            }
+        )
     }
 
     if (showClearDialog) {
