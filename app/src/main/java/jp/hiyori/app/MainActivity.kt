@@ -489,6 +489,11 @@ private fun HiyoriApp() {
             text = { Text("この端末に保存された会話をすべて削除します。バックアップがない場合、元に戻せません。") },
             confirmButton = {
                 TextButton(onClick = {
+                    continuousVoice = false
+                    shouldListenAgain = false
+                    isSpeaking = false
+                    isListening = false
+                    ttsEngine?.stop()
                     messages.clear()
                     saveMessages(context, messages)
                     nextId = 0
