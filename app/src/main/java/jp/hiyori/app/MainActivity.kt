@@ -303,10 +303,13 @@ private fun HiyoriApp() {
                 ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
                 ?.firstOrNull()
             if (!spokenText.isNullOrBlank()) {
-                draft = listOf(draft.trim(), spokenText).filter { it.isNotBlank() }.joinToString(" ")
+                val combinedText = listOf(draft.trim(), spokenText)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" ")
+                draft = combinedText
                 if (autoSendVoice) {
-                    status = "音声を認識しました。自動送信します"
-                    sendMessage(spokenText)
+                    status = "音声を認識しました。入力済みの文章と一緒に送信します"
+                    sendMessage(combinedText)
                 } else {
                     status = "音声を文字に変換しました。内容を確認して送信してください"
                 }
