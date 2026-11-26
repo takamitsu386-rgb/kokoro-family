@@ -390,6 +390,8 @@ private fun HiyoriApp() {
             continuousVoice = false
             shouldListenAgain = false
             status = "連続会話を停止しました"
+        } else {
+            status = "音声入力をキャンセルしました"
         }
     }
 
