@@ -209,8 +209,11 @@ private fun HiyoriApp() {
     val model = remember { Generation.getClient() }
     val listState = rememberLazyListState()
 
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
+    LaunchedEffect(messages.size, historyQuery) {
+        // The displayed list may be shorter than the full history while searching.
+        val visibleCount = if (historyQuery.isBlank()) messages.size else
+            messages.count { it.text.contains(historyQuery.trim(), ignoreCase = true) }
+        if (visibleCount > 0) listState.animateScrollToItem(visibleCount - 1)
     }
 
     var draft by remember(context) {
