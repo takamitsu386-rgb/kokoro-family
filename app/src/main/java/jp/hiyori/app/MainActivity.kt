@@ -1,6 +1,7 @@
 package jp.hiyori.app
 
 import android.app.Activity
+import android.graphics.BitmapFactory
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -16,6 +17,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +56,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -61,6 +67,8 @@ import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.prompt.Generation
 import com.google.mlkit.genai.prompt.GenerativeModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -84,6 +92,7 @@ private const val MESSAGES_KEY = "messages"
 private const val AUTO_SEND_VOICE_KEY = "auto_send_voice"
 private const val SPEAK_REPLIES_KEY = "speak_replies"
 private const val DRAFT_KEY = "draft_message"
+private const val AVATAR_URI_KEY = "avatar_image_uri"
 
 private fun loadMessages(context: Context): List<ChatMessage> {
     val saved = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -217,6 +226,36 @@ private fun buildHiyoriPrompt(messages: List<ChatMessage>): String {
 private fun HiyoriApp() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var avatarUri by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(AVATAR_URI_KEY, null)
+        )
+    }
+    var avatarBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+
+    LaunchedEffect(avatarUri) {
+        avatarBitmap = if (avatarUri == null) {
+            null
+        } else {
+            withContext(Dispatchers.IO) {
+                try {
+                    val uri = Uri.parse(avatarUri)
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    context.contentResolver.openInputStream(uri)?.use {
+                        BitmapFactory.decodeStream(it, null, bounds)
+                    }
+                    val sample = maxOf(1, minOf(bounds.outWidth, bounds.outHeight).coerceAtLeast(1) / 512)
+                    val options = BitmapFactory.Options().apply { inSampleSize = sample }
+                    context.contentResolver.openInputStream(uri)?.use {
+                        BitmapFactory.decodeStream(it, null, options)?.asImageBitmap()
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+            }
+        }
+    }
     val messages = remember(context) {
         mutableStateListOf<ChatMessage>().apply { addAll(loadMessages(context)) }
     }
@@ -513,6 +552,25 @@ private fun HiyoriApp() {
         }
     }
 
+    val avatarPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+                avatarUri = uri.toString()
+                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit().putString(AVATAR_URI_KEY, uri.toString()).apply()
+                status = "キャラクター画像を登録しました"
+            } catch (error: Exception) {
+                status = "画像を登録できませんでした: ${error.localizedMessage ?: "読み取り権限を保存できません"}"
+            }
+        }
+    }
+
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -580,11 +638,59 @@ private fun HiyoriApp() {
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.fillMaxSize().imePadding().padding(16.dp)) {
-                Text(
-                    text = "ひよりちゃん",
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (avatarBitmap != null) {
+                            Image(
+                                bitmap = avatarBitmap!!,
+                                contentDescription = "登録したキャラクター画像",
+                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Text(
+                                "画像\n未設定",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "ひよりちゃん",
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        Text(
+                            "登録した元画像をそのまま表示します",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Column {
+                        OutlinedButton(onClick = {
+                            avatarPickerLauncher.launch(arrayOf("image/*"))
+                        }) { Text(if (avatarUri == null) "画像を登録" else "画像を変更") }
+                        if (avatarUri != null) {
+                            TextButton(onClick = {
+                                avatarUri = null
+                                avatarBitmap = null
+                                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                                    .edit().remove(AVATAR_URI_KEY).apply()
+                                status = "キャラクター画像の登録を解除しました"
+                            }) { Text("解除") }
+                        }
+                    }
+                }
                 Text(
                     text = "会話履歴と入力途中の文章はこの端末に保存されます。音声入力はAndroidの音声認識サービスを利用します。",
                     style = MaterialTheme.typography.bodySmall,
