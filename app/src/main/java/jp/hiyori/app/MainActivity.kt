@@ -212,7 +212,11 @@ private fun HiyoriApp() {
     LaunchedEffect(speakReplies) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit().putBoolean(SPEAK_REPLIES_KEY, speakReplies).apply()
-        if (!speakReplies) ttsEngine?.stop()
+        if (!speakReplies) {
+            ttsEngine?.stop()
+            continuousVoice = false
+            shouldListenAgain = false
+        }
     }
 
     DisposableEffect(model) {
@@ -448,6 +452,15 @@ private fun HiyoriApp() {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                if (continuousVoice) {
+                    Text(
+                        text = if (isGenerating) "連続会話中：返事を準備しています"
+                        else "連続会話ON：返事の読み上げ後に聞き取ります",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
@@ -467,7 +480,9 @@ private fun HiyoriApp() {
                     OutlinedButton(
                         onClick = {
                             ttsEngine?.stop()
-                            status = "読み上げを停止しました"
+                            continuousVoice = false
+                            shouldListenAgain = false
+                            status = "読み上げと連続会話を停止しました"
                         },
                         enabled = ttsReady
                     ) { Text("読み上げ停止") }
@@ -637,7 +652,7 @@ private fun HiyoriApp() {
                         } catch (error: Exception) {
                             status = "音声入力を開始できません: " + (error.localizedMessage ?: "不明なエラー")
                         }
-                    }) { Text("音声入力") }
+                    }, enabled = !continuousVoice && !isGenerating) { Text("音声入力") }
                 }
 
                 Row(
