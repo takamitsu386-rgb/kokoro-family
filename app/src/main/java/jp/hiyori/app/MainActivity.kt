@@ -557,6 +557,10 @@ private fun HiyoriApp() {
                         singleLine = true
                     )
                     Spacer(modifier = Modifier.width(6.dp))
+                    OutlinedButton(
+                        onClick = { draft = "" },
+                        enabled = draft.isNotEmpty() && !isGenerating
+                    ) { Text("消去") }
                     Button(
                         onClick = { sendMessage(null) },
                         enabled = draft.isNotBlank() && !isGenerating
