@@ -257,6 +257,20 @@ private fun HiyoriApp() {
         }
     }
 
+    LaunchedEffect(model) {
+        status = "端末内AIの利用可否を確認しています"
+        try {
+            status = when (model.checkStatus()) {
+                FeatureStatus.AVAILABLE -> "端末内AIは利用できます"
+                FeatureStatus.DOWNLOADABLE -> "端末内AIは準備可能です。初回の送信時にモデルを準備します"
+                FeatureStatus.DOWNLOADING -> "端末内AIは準備中です。完了後に利用できます"
+                else -> "端末内AIは現在利用できません。AICoreとAndroidの状態を確認してください"
+            }
+        } catch (error: Exception) {
+            status = "端末内AIの状態を確認できません: ${error.localizedMessage ?: "不明なエラー"}"
+        }
+    }
+
     DisposableEffect(model) {
         onDispose { model.close() }
     }
