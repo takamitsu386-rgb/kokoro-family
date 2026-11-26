@@ -131,8 +131,19 @@ private fun createBackup(messages: List<ChatMessage>): String {
 
 private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     val jsonText = context.contentResolver.openInputStream(uri)
-        ?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
-        ?: throw IllegalArgumentException("ファイルを読み込めませんでした")
+        ?.bufferedReader(Charsets.UTF_8)?.use { reader ->
+            val content = StringBuilder()
+            val buffer = CharArray(8192)
+            while (true) {
+                val count = reader.read(buffer)
+                if (count < 0) break
+                require(content.length + count <= 5_000_000) {
+                    "バックアップファイルが大きすぎます（上限5MB）"
+                }
+                content.append(buffer, 0, count)
+            }
+            content.toString()
+        } ?: throw IllegalArgumentException("ファイルを読み込めませんでした")
     val root = JSONObject(jsonText)
     require(root.optString("format") == "hiyori-chat-backup") {
         "ひよりちゃんのバックアップファイルではありません"
