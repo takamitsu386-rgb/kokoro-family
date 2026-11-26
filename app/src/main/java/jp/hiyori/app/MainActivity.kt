@@ -17,7 +17,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -658,7 +657,7 @@ private fun HiyoriApp() {
                             Image(
                                 bitmap = avatarBitmap!!,
                                 contentDescription = "登録したキャラクター画像",
-                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit
                             )
                         } else {
