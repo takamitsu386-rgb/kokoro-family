@@ -79,6 +79,7 @@ private const val PREFS_NAME = "hiyori_chat"
 private const val MESSAGES_KEY = "messages"
 private const val AUTO_SEND_VOICE_KEY = "auto_send_voice"
 private const val SPEAK_REPLIES_KEY = "speak_replies"
+private const val DRAFT_KEY = "draft_message"
 
 private fun loadMessages(context: Context): List<ChatMessage> {
     val saved = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -204,7 +205,17 @@ private fun HiyoriApp() {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
     }
 
-    var draft by remember { mutableStateOf("") }
+    var draft by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(DRAFT_KEY, "").orEmpty()
+        )
+    }
+
+    LaunchedEffect(draft) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(DRAFT_KEY, draft).apply()
+    }
     var nextId by remember { mutableStateOf((messages.maxOfOrNull { it.id } ?: -1) + 1) }
     var status by remember { mutableStateOf("端末内AIの準備状態を確認できます") }
     var isGenerating by remember { mutableStateOf(false) }
