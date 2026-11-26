@@ -224,7 +224,7 @@ private fun HiyoriApp() {
     val filteredMessages = if (historyQuery.isBlank()) messages.toList()
         else messages.filter { it.text.contains(historyQuery.trim(), ignoreCase = true) }
 
-    LaunchedEffect(filteredMessages.size) {
+    LaunchedEffect(historyQuery, messages.size) {
         if (filteredMessages.isNotEmpty()) {
             listState.animateScrollToItem(filteredMessages.lastIndex)
         }
