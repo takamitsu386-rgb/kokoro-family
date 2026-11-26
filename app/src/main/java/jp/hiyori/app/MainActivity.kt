@@ -180,6 +180,7 @@ private fun HiyoriApp() {
     var showClearDialog by remember { mutableStateOf(false) }
     var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
     var ttsReady by remember { mutableStateOf(false) }
+    var autoSendVoice by remember { mutableStateOf(false) }
 
     DisposableEffect(model) {
         onDispose { model.close() }
@@ -206,6 +207,66 @@ private fun HiyoriApp() {
         }
     }
 
+    val sendMessage: () -> Unit = {
+        
+                                    val text = draft.trim()
+                                    if (text.isNotEmpty() && !isGenerating) {
+                                        val userMessage = ChatMessage(nextId++, text, true)
+                                        messages.add(userMessage)
+                                        saveMessages(context, messages)
+                                        draft = ""
+                                        isGenerating = true
+                                        scope.launch {
+                                            try {
+                                                var featureStatus = model.checkStatus()
+                                                if (featureStatus == FeatureStatus.DOWNLOADABLE) {
+                                                    status = "端末内AIを準備しています。初回はモデルのダウンロードが必要です"
+                                                    model.download().collect { downloadStatus ->
+                                                        when (downloadStatus) {
+                                                            is DownloadStatus.DownloadStarted -> status = "端末内AIの準備を開始しました"
+                                                            is DownloadStatus.DownloadProgress -> status = "端末内AIをダウンロード中です"
+                                                            DownloadStatus.DownloadCompleted -> status = "端末内AIの準備が完了しました"
+                                                            is DownloadStatus.DownloadFailed -> throw downloadStatus.e
+                                                        }
+                                                    }
+                                                    featureStatus = model.checkStatus()
+                                                }
+        
+                                                if (featureStatus != FeatureStatus.AVAILABLE) {
+                                                    status = when (featureStatus) {
+                                                        FeatureStatus.DOWNLOADING -> "端末内AIは準備中です。少し待ってから再送信してください"
+                                                        else -> "端末内AIを利用できません。AICoreの更新・モデルの準備状態を確認してください"
+                                                    }
+                                                } else {
+                                                    status = "ひよりちゃんが返事を考えています"
+                                                    val prompt = buildHiyoriPrompt(messages.toList())
+                                                    val response = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim()
+                                                    if (response.isNotBlank()) {
+                                                        val reply = ChatMessage(nextId++, response, false)
+                                                        messages.add(reply)
+                                                        saveMessages(context, messages)
+                                                        if (ttsReady) {
+                                                            ttsEngine?.speak(
+                                                                response,
+                                                                TextToSpeech.QUEUE_FLUSH,
+                                                                null,
+                                                                "hiyori_reply_${reply.id}"
+                                                            )
+                                                        }
+                                                        status = "ひよりちゃんから返事が届きました"
+                                                    } else {
+                                                        status = "返事を作れませんでした。もう一度送ってください"
+                                                    }
+                                                }
+                                            } catch (error: Exception) {
+                                                status = "AI応答エラー: ${error.localizedMessage ?: "時間をおいて再試行してください"}"
+                                            } finally {
+                                                isGenerating = false
+                                            }
+                                        }
+                                    }
+    }
+
     val speechLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -215,7 +276,12 @@ private fun HiyoriApp() {
                 ?.firstOrNull()
             if (!spokenText.isNullOrBlank()) {
                 draft = listOf(draft.trim(), spokenText).filter { it.isNotBlank() }.joinToString(" ")
-                status = "音声を文字に変換しました。内容を確認して送信してください"
+                if (autoSendVoice) {
+                    status = "音声を認識しました。自動送信します"
+                    sendMessage()
+                } else {
+                    status = "音声を文字に変換しました。内容を確認して送信してください"
+                }
             } else {
                 status = "音声を認識できませんでした"
             }
@@ -403,6 +469,10 @@ private fun HiyoriApp() {
                         singleLine = true
                     )
                     Spacer(modifier = Modifier.width(6.dp))
+                    OutlinedButton(
+                        onClick = { autoSendVoice = !autoSendVoice },
+                        enabled = !isGenerating
+                    ) { Text(if (autoSendVoice) "自動送信ON" else "自動送信OFF") }
                     OutlinedButton(onClick = {
                         try {
                             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -423,64 +493,7 @@ private fun HiyoriApp() {
                     }) { Text("音声") }
                     Spacer(modifier = Modifier.width(6.dp))
                     Button(
-                        onClick = {
-                            val text = draft.trim()
-                            if (text.isNotEmpty() && !isGenerating) {
-                                val userMessage = ChatMessage(nextId++, text, true)
-                                messages.add(userMessage)
-                                saveMessages(context, messages)
-                                draft = ""
-                                isGenerating = true
-                                scope.launch {
-                                    try {
-                                        var featureStatus = model.checkStatus()
-                                        if (featureStatus == FeatureStatus.DOWNLOADABLE) {
-                                            status = "端末内AIを準備しています。初回はモデルのダウンロードが必要です"
-                                            model.download().collect { downloadStatus ->
-                                                when (downloadStatus) {
-                                                    is DownloadStatus.DownloadStarted -> status = "端末内AIの準備を開始しました"
-                                                    is DownloadStatus.DownloadProgress -> status = "端末内AIをダウンロード中です"
-                                                    DownloadStatus.DownloadCompleted -> status = "端末内AIの準備が完了しました"
-                                                    is DownloadStatus.DownloadFailed -> throw downloadStatus.e
-                                                }
-                                            }
-                                            featureStatus = model.checkStatus()
-                                        }
-
-                                        if (featureStatus != FeatureStatus.AVAILABLE) {
-                                            status = when (featureStatus) {
-                                                FeatureStatus.DOWNLOADING -> "端末内AIは準備中です。少し待ってから再送信してください"
-                                                else -> "端末内AIを利用できません。AICoreの更新・モデルの準備状態を確認してください"
-                                            }
-                                        } else {
-                                            status = "ひよりちゃんが返事を考えています"
-                                            val prompt = buildHiyoriPrompt(messages.toList())
-                                            val response = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim()
-                                            if (response.isNotBlank()) {
-                                                val reply = ChatMessage(nextId++, response, false)
-                                                messages.add(reply)
-                                                saveMessages(context, messages)
-                                                if (ttsReady) {
-                                                    ttsEngine?.speak(
-                                                        response,
-                                                        TextToSpeech.QUEUE_FLUSH,
-                                                        null,
-                                                        "hiyori_reply_${reply.id}"
-                                                    )
-                                                }
-                                                status = "ひよりちゃんから返事が届きました"
-                                            } else {
-                                                status = "返事を作れませんでした。もう一度送ってください"
-                                            }
-                                        }
-                                    } catch (error: Exception) {
-                                        status = "AI応答エラー: ${error.localizedMessage ?: "時間をおいて再試行してください"}"
-                                    } finally {
-                                        isGenerating = false
-                                    }
-                                }
-                            }
-                        },
+                        onClick = sendMessage,
                         enabled = draft.isNotBlank() && !isGenerating
                     ) { Text("送信") }
                 }
