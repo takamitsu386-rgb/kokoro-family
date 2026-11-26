@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -240,23 +242,30 @@ private fun HiyoriApp() {
             }
         }
         ttsEngine = engine
+        val mainHandler = Handler(Looper.getMainLooper())
         engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
-                if (utteranceId?.startsWith("hiyori_reply_") == true) isSpeaking = true
+                if (utteranceId?.startsWith("hiyori_reply_") == true) {
+                    mainHandler.post { isSpeaking = true }
+                }
             }
             override fun onDone(utteranceId: String?) {
                 if (utteranceId?.startsWith("hiyori_reply_") == true) {
-                    isSpeaking = false
-                    if (continuousVoice) shouldListenAgain = true
+                    mainHandler.post {
+                        isSpeaking = false
+                        if (continuousVoice) shouldListenAgain = true
+                    }
                 }
             }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
                 if (utteranceId?.startsWith("hiyori_reply_") == true) {
-                    isSpeaking = false
-                    status = "読み上げに失敗しました。連続会話を停止しました"
-                    continuousVoice = false
-                    shouldListenAgain = false
+                    mainHandler.post {
+                        isSpeaking = false
+                        status = "読み上げに失敗しました。連続会話を停止しました"
+                        continuousVoice = false
+                        shouldListenAgain = false
+                    }
                 }
             }
         })
