@@ -1,6 +1,6 @@
 # ひよりちゃん Android
 
-現在のアプリバージョン: **0.3.0**（versionCode 3）
+現在のアプリバージョン: **0.4.0**（versionCode 4）
 
 Pixel 9向けの日本語会話キャラクターアプリ。外部の有料AI APIやAPIキーを使わず、対応端末ではGemini Nanoを端末内で実行する構成。
 
