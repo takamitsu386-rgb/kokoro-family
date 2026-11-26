@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -33,15 +34,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.google.mlkit.genai.common.DownloadStatus
+import com.google.mlkit.genai.common.FeatureStatus
+import com.google.mlkit.genai.prompt.Generation
+import com.google.mlkit.genai.prompt.GenerativeModel
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
@@ -53,7 +61,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private data class ChatMessage(val id: Int, val text: String)
+private data class ChatMessage(
+    val id: Int,
+    val text: String,
+    val isUser: Boolean = true
+)
 
 private const val PREFS_NAME = "hiyori_chat"
 private const val MESSAGES_KEY = "messages"
@@ -65,7 +77,11 @@ private fun loadMessages(context: Context): List<ChatMessage> {
         val json = JSONArray(saved)
         List(json.length()) { index ->
             val item = json.getJSONObject(index)
-            ChatMessage(item.getInt("id"), item.getString("text"))
+            ChatMessage(
+                item.getInt("id"),
+                item.getString("text"),
+                item.optBoolean("isUser", true)
+            )
         }
     } catch (_: Exception) {
         emptyList()
@@ -75,7 +91,12 @@ private fun loadMessages(context: Context): List<ChatMessage> {
 private fun saveMessages(context: Context, messages: List<ChatMessage>) {
     val json = JSONArray()
     messages.forEach { message ->
-        json.put(JSONObject().put("id", message.id).put("text", message.text))
+        json.put(
+            JSONObject()
+                .put("id", message.id)
+                .put("text", message.text)
+                .put("isUser", message.isUser)
+        )
     }
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .edit().putString(MESSAGES_KEY, json.toString()).apply()
@@ -84,11 +105,16 @@ private fun saveMessages(context: Context, messages: List<ChatMessage>) {
 private fun createBackup(messages: List<ChatMessage>): String {
     val items = JSONArray()
     messages.forEach { message ->
-        items.put(JSONObject().put("id", message.id).put("text", message.text))
+        items.put(
+            JSONObject()
+                .put("id", message.id)
+                .put("text", message.text)
+                .put("isUser", message.isUser)
+        )
     }
     return JSONObject()
         .put("format", "hiyori-chat-backup")
-        .put("version", 1)
+        .put("version", 2)
         .put("messages", items)
         .toString(2)
 }
@@ -104,24 +130,55 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     val items = root.getJSONArray("messages")
     return List(items.length()) { index ->
         val item = items.getJSONObject(index)
-        ChatMessage(item.getInt("id"), item.getString("text"))
+        ChatMessage(
+            item.getInt("id"),
+            item.getString("text"),
+            item.optBoolean("isUser", true)
+        )
     }
+}
+
+private fun buildHiyoriPrompt(messages: List<ChatMessage>): String {
+    val conversation = messages.takeLast(12).joinToString("\n") { message ->
+        val speaker = if (message.isUser) "ユーザー" else "ひより"
+        "$speaker: ${message.text}"
+    }
+    return """
+        あなたは「ひよりちゃん」という日本語で話す会話キャラクターです。
+        明るく自然で、親しみやすい言葉づかいをしてください。
+        返答は基本的に短めの自然な日本語にしてください。
+        相手の話をよく聞き、分からないことは分からないと伝えてください。
+        あなたが現実の人間である、または現実世界で相手のそばにいるとは主張しないでください。
+        
+        これまでの会話:
+        $conversation
+        
+        ひよりちゃんの返答:
+    """.trimIndent()
 }
 
 @Composable
 private fun HiyoriApp() {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val messages = remember(context) {
         mutableStateListOf<ChatMessage>().apply { addAll(loadMessages(context)) }
     }
+    val model = remember { Generation.getClient() }
+
     var draft by remember { mutableStateOf("") }
     var nextId by remember { mutableStateOf((messages.maxOfOrNull { it.id } ?: -1) + 1) }
-    var status by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf("端末内AIの準備状態を確認できます") }
+    var isGenerating by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
     var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
     var ttsReady by remember { mutableStateOf(false) }
 
-    androidx.compose.runtime.DisposableEffect(context) {
+    DisposableEffect(model) {
+        onDispose { model.close() }
+    }
+
+    DisposableEffect(context) {
         var engine: TextToSpeech? = null
         engine = TextToSpeech(context.applicationContext) { result ->
             if (result == TextToSpeech.SUCCESS) {
@@ -129,14 +186,8 @@ private fun HiyoriApp() {
                 ttsReady = languageResult != TextToSpeech.LANG_MISSING_DATA &&
                     languageResult != TextToSpeech.LANG_NOT_SUPPORTED &&
                     languageResult != null
-                if (ttsReady) {
-                    status = "日本語の音声読み上げが使えます"
-                } else {
-                    status = "日本語音声データがありません。端末の音声設定を確認してください"
-                }
             } else {
                 ttsReady = false
-                status = "音声読み上げを初期化できませんでした"
             }
         }
         ttsEngine = engine
@@ -225,7 +276,7 @@ private fun HiyoriApp() {
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
                 Text(
-                    text = "テキストチャット",
+                    text = "端末内AIチャット（Gemini Nano）",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -233,7 +284,7 @@ private fun HiyoriApp() {
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                    horizontalArrangement = Arrangement.Start
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(
                         onClick = {
@@ -243,10 +294,26 @@ private fun HiyoriApp() {
                                 null,
                                 "hiyori_voice_preview"
                             )
-                            status = "ひよりちゃんの声のサンプルを再生しています"
                         },
                         enabled = ttsReady
                     ) { Text("声を試す") }
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                status = "端末内AIの状態を確認しています"
+                                try {
+                                    status = when (model.checkStatus()) {
+                                        FeatureStatus.AVAILABLE -> "端末内AIは利用できます"
+                                        FeatureStatus.DOWNLOADABLE -> "端末内AIはダウンロード可能です。メッセージ送信時に準備します"
+                                        FeatureStatus.DOWNLOADING -> "端末内AIを準備中です。完了後にもう一度確認してください"
+                                        else -> "端末内AIは現在利用できません。AICoreとAndroidを更新して再確認してください"
+                                    }
+                                } catch (error: Exception) {
+                                    status = "状態確認に失敗しました: ${error.localizedMessage ?: "不明なエラー"}"
+                                }
+                            }
+                        }
+                    ) { Text("AI状態確認") }
                 }
 
                 Row(
@@ -274,7 +341,7 @@ private fun HiyoriApp() {
                     ) {
                         Text("ここから会話を始められます")
                         Text(
-                            "メッセージを入力して送信してください",
+                            "文字入力または音声入力で話しかけてください",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 6.dp)
@@ -288,18 +355,31 @@ private fun HiyoriApp() {
                         items(messages, key = { it.id }) { message ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
+                                horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
                             ) {
                                 Text(
                                     text = message.text,
                                     modifier = Modifier.background(
-                                        MaterialTheme.colorScheme.primaryContainer,
+                                        if (message.isUser) MaterialTheme.colorScheme.primaryContainer
+                                        else MaterialTheme.colorScheme.secondaryContainer,
                                         RoundedCornerShape(16.dp)
                                     ).padding(horizontal = 14.dp, vertical = 10.dp),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    color = if (message.isUser) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                             }
                         }
+                    }
+                }
+
+                if (isGenerating) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                        Text(" ひよりちゃんが考えています…")
                     }
                 }
 
@@ -336,21 +416,69 @@ private fun HiyoriApp() {
                     Spacer(modifier = Modifier.width(6.dp))
                     Button(
                         onClick = {
-                            val message = draft.trim()
-                            if (message.isNotEmpty()) {
-                                messages.add(ChatMessage(nextId++, message))
+                            val text = draft.trim()
+                            if (text.isNotEmpty() && !isGenerating) {
+                                val userMessage = ChatMessage(nextId++, text, true)
+                                messages.add(userMessage)
                                 saveMessages(context, messages)
                                 draft = ""
+                                isGenerating = true
+                                scope.launch {
+                                    try {
+                                        var featureStatus = model.checkStatus()
+                                        if (featureStatus == FeatureStatus.DOWNLOADABLE) {
+                                            status = "端末内AIを準備しています。初回はモデルのダウンロードが必要です"
+                                            model.download().collect { downloadStatus ->
+                                                when (downloadStatus) {
+                                                    is DownloadStatus.DownloadStarted -> status = "端末内AIの準備を開始しました"
+                                                    is DownloadStatus.DownloadProgress -> status = "端末内AIをダウンロード中です"
+                                                    DownloadStatus.DownloadCompleted -> status = "端末内AIの準備が完了しました"
+                                                    is DownloadStatus.DownloadFailed -> throw downloadStatus.e
+                                                }
+                                            }
+                                            featureStatus = model.checkStatus()
+                                        }
+
+                                        if (featureStatus != FeatureStatus.AVAILABLE) {
+                                            status = when (featureStatus) {
+                                                FeatureStatus.DOWNLOADING -> "端末内AIは準備中です。少し待ってから再送信してください"
+                                                else -> "端末内AIを利用できません。AICoreの更新・モデルの準備状態を確認してください"
+                                            }
+                                        } else {
+                                            status = "ひよりちゃんが返事を考えています"
+                                            val prompt = buildHiyoriPrompt(messages.toList())
+                                            val response = model.generateContent(prompt).text.trim()
+                                            if (response.isNotBlank()) {
+                                                val reply = ChatMessage(nextId++, response, false)
+                                                messages.add(reply)
+                                                saveMessages(context, messages)
+                                                if (ttsReady) {
+                                                    ttsEngine?.speak(
+                                                        response,
+                                                        TextToSpeech.QUEUE_FLUSH,
+                                                        null,
+                                                        "hiyori_reply_${reply.id}"
+                                                    )
+                                                }
+                                                status = "ひよりちゃんから返事が届きました"
+                                            } else {
+                                                status = "返事を作れませんでした。もう一度送ってください"
+                                            }
+                                        }
+                                    } catch (error: Exception) {
+                                        status = "AI応答エラー: ${error.localizedMessage ?: "時間をおいて再試行してください"}"
+                                    } finally {
+                                        isGenerating = false
+                                    }
+                                }
                             }
                         },
-                        enabled = draft.isNotBlank()
+                        enabled = draft.isNotBlank() && !isGenerating
                     ) { Text("送信") }
                 }
 
                 Text(
-                    text = status.ifBlank {
-                        "日本語読み上げは端末の音声合成機能を利用します。AIの返答機能は未実装です。"
-                    },
+                    text = status,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp)
