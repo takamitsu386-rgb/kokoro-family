@@ -136,15 +136,24 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     require(root.optString("format") == "hiyori-chat-backup") {
         "ひよりちゃんのバックアップファイルではありません"
     }
+    val version = root.optInt("version", 1)
+    require(version in 1..2) { "このバックアップのバージョンには対応していません" }
     val items = root.getJSONArray("messages")
-    return List(items.length()) { index ->
+    require(items.length() <= 10000) { "メッセージ数が上限（10,000件）を超えています" }
+    val restored = ArrayList<ChatMessage>(items.length())
+    val usedIds = HashSet<Int>()
+    for (index in 0 until items.length()) {
         val item = items.getJSONObject(index)
-        ChatMessage(
-            item.getInt("id"),
-            item.getString("text"),
-            item.optBoolean("isUser", true)
-        )
+        val id = item.getInt("id")
+        val messageText = item.getString("text")
+        require(id >= 0) { "不正なメッセージIDが含まれています" }
+        require(usedIds.add(id)) { "重複したメッセージIDが含まれています" }
+        require(messageText.isNotBlank() && messageText.length <= 20000) {
+            "空、または長すぎるメッセージが含まれています"
+        }
+        restored.add(ChatMessage(id, messageText, item.optBoolean("isUser", true)))
     }
+    return restored
 }
 
 private fun buildHiyoriPrompt(messages: List<ChatMessage>): String {
