@@ -799,6 +799,13 @@ private fun HiyoriApp() {
                 }
 
                 Text(
+                    text = "${draft.length}/20000文字",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+                )
+
+                Text(
                     text = status,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
