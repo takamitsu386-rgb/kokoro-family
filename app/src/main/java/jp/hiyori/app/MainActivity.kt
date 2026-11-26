@@ -379,12 +379,21 @@ private fun HiyoriApp() {
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
-                Text(
-                    text = "端末内AIチャット（Gemini Nano）",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "端末内AIチャット（Gemini Nano）",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "履歴 ${messages.size}件",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
@@ -434,12 +443,16 @@ private fun HiyoriApp() {
                     OutlinedButton(onClick = {
                         exportLauncher.launch("hiyori-backup.json")
                     }, modifier = Modifier.weight(1f)) { Text("バックアップ") }
-                    OutlinedButton(onClick = {
-                        importLauncher.launch(arrayOf("application/json", "text/json", "*/*"))
-                    }, modifier = Modifier.weight(1f)) { Text("復元") }
+                    OutlinedButton(
+                        onClick = {
+                            importLauncher.launch(arrayOf("application/json", "text/json", "*/*"))
+                        },
+                        enabled = !isGenerating,
+                        modifier = Modifier.weight(1f)
+                    ) { Text("復元") }
                     OutlinedButton(
                         onClick = { showClearDialog = true },
-                        enabled = messages.isNotEmpty(),
+                        enabled = messages.isNotEmpty() && !isGenerating,
                         modifier = Modifier.weight(1f)
                     ) { Text("履歴削除") }
                 }
