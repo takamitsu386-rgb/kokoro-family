@@ -664,6 +664,17 @@ private fun HiyoriApp() {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 6.dp)
                         )
+                        Row(
+                            modifier = Modifier.padding(top = 14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(onClick = { draft = "こんにちは！" }) {
+                                Text("あいさつする")
+                            }
+                            OutlinedButton(onClick = { draft = "今日はどんなことができる？" }) {
+                                Text("できることを聞く")
+                            }
+                        }
                     }
                 } else {
                     LazyColumn(
