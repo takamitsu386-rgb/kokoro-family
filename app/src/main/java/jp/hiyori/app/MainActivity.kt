@@ -540,6 +540,7 @@ private fun HiyoriApp() {
                     messages.addAll(restored)
                     saveMessages(context, messages)
                     nextId = (messages.maxOfOrNull { it.id } ?: -1) + 1
+                    historyQuery = ""
                     pendingRestore = null
                     status = "${messages.size}件のメッセージを復元しました"
                 }) { Text("復元する") }
@@ -565,6 +566,7 @@ private fun HiyoriApp() {
                     messages.clear()
                     saveMessages(context, messages)
                     nextId = 0
+                    historyQuery = ""
                     showClearDialog = false
                     status = "会話履歴を削除しました"
                 }) { Text("削除") }
