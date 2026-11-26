@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -205,6 +206,9 @@ private fun HiyoriApp() {
         )
     }
 
+    var continuousVoice by remember { mutableStateOf(false) }
+    var shouldListenAgain by remember { mutableStateOf(false) }
+
     LaunchedEffect(speakReplies) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit().putBoolean(SPEAK_REPLIES_KEY, speakReplies).apply()
@@ -228,6 +232,22 @@ private fun HiyoriApp() {
             }
         }
         ttsEngine = engine
+        engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) = Unit
+            override fun onDone(utteranceId: String?) {
+                if (utteranceId?.startsWith("hiyori_reply_") == true && continuousVoice) {
+                    shouldListenAgain = true
+                }
+            }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {
+                if (utteranceId?.startsWith("hiyori_reply_") == true) {
+                    status = "読み上げに失敗しました。連続会話を停止しました"
+                    continuousVoice = false
+                    shouldListenAgain = false
+                }
+            }
+        })
         onDispose {
             engine?.stop()
             engine?.shutdown()
@@ -308,14 +328,41 @@ private fun HiyoriApp() {
                     .filter { it.isNotBlank() }
                     .joinToString(" ")
                 draft = combinedText
-                if (autoSendVoice) {
-                    status = "音声を認識しました。入力済みの文章と一緒に送信します"
+                if (continuousVoice || autoSendVoice) {
+                    status = "音声を認識しました。送信します"
                     sendMessage(combinedText)
                 } else {
                     status = "音声を文字に変換しました。内容を確認して送信してください"
                 }
             } else {
-                status = "音声を認識できませんでした"
+                continuousVoice = false
+                shouldListenAgain = false
+                status = "音声を認識できませんでした。連続会話を停止しました"
+            }
+        } else if (continuousVoice) {
+            continuousVoice = false
+            shouldListenAgain = false
+            status = "連続会話を停止しました"
+        }
+    }
+
+    LaunchedEffect(shouldListenAgain, continuousVoice) {
+        if (shouldListenAgain && continuousVoice) {
+            shouldListenAgain = false
+            try {
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ja-JP")
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "ひよりちゃんに話しかけてください")
+                }
+                speechLauncher.launch(intent)
+                status = "どうぞ話してください"
+            } catch (_: ActivityNotFoundException) {
+                continuousVoice = false
+                status = "音声認識機能が見つからないため連続会話を停止しました"
+            } catch (error: Exception) {
+                continuousVoice = false
+                status = "音声入力を再開できません: " + (error.localizedMessage ?: "不明なエラー")
             }
         }
     }
@@ -535,6 +582,32 @@ private fun HiyoriApp() {
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    OutlinedButton(
+                        onClick = {
+                            if (continuousVoice) {
+                                continuousVoice = false
+                                shouldListenAgain = false
+                                ttsEngine?.stop()
+                                status = "連続会話を停止しました"
+                            } else {
+                                continuousVoice = true
+                                shouldListenAgain = false
+                                try {
+                                    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                        putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ja-JP")
+                                        putExtra(RecognizerIntent.EXTRA_PROMPT, "ひよりちゃんに話しかけてください")
+                                    }
+                                    speechLauncher.launch(intent)
+                                    status = "連続会話を開始します"
+                                } catch (error: Exception) {
+                                    continuousVoice = false
+                                    status = "連続会話を開始できません: " + (error.localizedMessage ?: "音声認識機能がありません")
+                                }
+                            }
+                        },
+                        enabled = !isGenerating || continuousVoice
+                    ) { Text(if (continuousVoice) "連続会話を停止" else "連続会話を開始") }
                     OutlinedButton(
                         onClick = { autoSendVoice = !autoSendVoice },
                         enabled = !isGenerating
