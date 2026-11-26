@@ -564,7 +564,8 @@ private fun HiyoriApp() {
                                     status = "状態確認に失敗しました: ${error.localizedMessage ?: "不明なエラー"}"
                                 }
                             }
-                        }
+                        },
+                        enabled = !isGenerating
                     ) { Text("AI状態確認") }
                 }
 
@@ -577,6 +578,9 @@ private fun HiyoriApp() {
                     }, modifier = Modifier.weight(1f)) { Text("バックアップ") }
                     OutlinedButton(
                         onClick = {
+                            continuousVoice = false
+                            shouldListenAgain = false
+                            ttsEngine?.stop()
                             importLauncher.launch(arrayOf("application/json", "text/json", "*/*"))
                         },
                         enabled = !isGenerating,
