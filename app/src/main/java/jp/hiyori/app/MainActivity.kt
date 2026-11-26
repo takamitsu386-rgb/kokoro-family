@@ -234,9 +234,11 @@ private fun HiyoriApp() {
     }
     var avatarBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
     var avatarLoadFailed by remember { mutableStateOf(false) }
+    var avatarReloadKey by remember { mutableStateOf(0) }
 
-    LaunchedEffect(avatarUri) {
+    LaunchedEffect(avatarUri, avatarReloadKey) {
         val currentAvatarUri = avatarUri
+        avatarBitmap = null
         avatarLoadFailed = false
         val loadedAvatar = if (currentAvatarUri == null) {
             null
@@ -698,6 +700,12 @@ private fun HiyoriApp() {
                         OutlinedButton(onClick = {
                             avatarPickerLauncher.launch(arrayOf("image/*"))
                         }) { Text(if (avatarUri == null) "画像を登録" else "画像を変更") }
+                        if (avatarLoadFailed && avatarUri != null) {
+                            TextButton(onClick = {
+                                avatarReloadKey++
+                                status = "登録画像を再読み込みしています"
+                            }) { Text("再読み込み") }
+                        }
                         if (avatarUri != null) {
                             TextButton(onClick = {
                                 val previousAvatarUri = avatarUri
