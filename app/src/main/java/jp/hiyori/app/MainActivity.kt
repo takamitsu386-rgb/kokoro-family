@@ -97,7 +97,8 @@ private data class ChatMessage(
     val id: Int,
     val text: String,
     val isUser: Boolean = true,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val isFavorite: Boolean = false
 )
 
 private data class CharacterSettings(
@@ -207,7 +208,8 @@ private fun loadMessages(context: Context): List<ChatMessage> {
                 item.getInt("id"),
                 item.getString("text"),
                 item.optBoolean("isUser", true),
-                item.optLong("createdAt", 0L)
+                item.optLong("createdAt", 0L),
+                item.optBoolean("isFavorite", false)
             )
         }
     } catch (_: Exception) {
@@ -224,6 +226,7 @@ private fun saveMessages(context: Context, messages: List<ChatMessage>) {
                 .put("text", message.text)
                 .put("isUser", message.isUser)
                 .put("createdAt", message.createdAt)
+                .put("isFavorite", message.isFavorite)
         )
     }
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -249,7 +252,7 @@ private fun createBackup(messages: List<ChatMessage>): String {
     }
     return JSONObject()
         .put("format", "hiyori-chat-backup")
-        .put("version", 5)
+        .put("version", 6)
         .put("exportedAt", System.currentTimeMillis())
         .put("messageCount", messages.size)
         .put("checksumAlgorithm", "SHA-256")
@@ -299,7 +302,7 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
         "ひよりちゃんのバックアップファイルではありません"
     }
     val version = root.optInt("version", 1)
-    require(version in 1..5) { "このバックアップのバージョンには対応していません" }
+    require(version in 1..6) { "このバックアップのバージョンには対応していません" }
     val items = root.getJSONArray("messages")
     require(items.length() <= 10000) { "メッセージ数が上限（10,000件）を超えています" }
     if (version >= 4) {
@@ -345,7 +348,8 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
         }
         val createdAt = item.optLong("createdAt", 0L)
         require(createdAt >= 0L) { "不正な日時が含まれています" }
-        restored.add(ChatMessage(id, messageText, item.optBoolean("isUser", true), createdAt))
+        if (version >= 6) require(item.has("isFavorite")) { "お気に入り情報がありません" }
+        restored.add(ChatMessage(id, messageText, item.optBoolean("isUser", true), createdAt, item.optBoolean("isFavorite", false)))
     }
     return restored
 }
@@ -507,6 +511,7 @@ private fun HiyoriApp() {
     }
     var historyQuery by remember { mutableStateOf("") }
     var historySpeakerFilter by remember { mutableStateOf("すべて") }
+    var favoritesOnly by remember { mutableStateOf(false) }
     var searchResultIndex by remember { mutableStateOf(0) }
     val filteredMessages = messages.filter { message ->
         val matchesText = historyQuery.isBlank() ||
@@ -516,7 +521,7 @@ private fun HiyoriApp() {
             "ひより" -> !message.isUser
             else -> true
         }
-        matchesText && matchesSpeaker
+        matchesText && matchesSpeaker && (!favoritesOnly || message.isFavorite)
     }
 
     LaunchedEffect(historyQuery, historySpeakerFilter, messages.size) {
@@ -1589,14 +1594,18 @@ private fun HiyoriApp() {
                             }
                         }
                     }
-                    if ((historyQuery.isNotBlank() || historySpeakerFilter != "すべて") && filteredMessages.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = { favoritesOnly = !favoritesOnly },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                    ) { Text(if (favoritesOnly) "★ お気に入りのみ表示中（解除）" else "★ お気に入りのみ表示") }
+                    if ((historyQuery.isNotBlank() || historySpeakerFilter != "すべて" || favoritesOnly) && filteredMessages.isNotEmpty()) {
                         OutlinedButton(
                             onClick = { filteredTranscriptLauncher.launch(timestampedExportName("hiyori-search-results", "txt")) },
                             enabled = !isGenerating,
                             modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                         ) { Text("この検索結果をTXT保存（${filteredMessages.size}件）") }
                     }
-                    if (historyQuery.isNotBlank() || historySpeakerFilter != "すべて") {
+                    if (historyQuery.isNotBlank() || historySpeakerFilter != "すべて" || favoritesOnly) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -1726,6 +1735,17 @@ private fun HiyoriApp() {
                                             fontSize = chatTextSize.sp
                                         )
                                     }
+                                    TextButton(
+                                        onClick = {
+                                            val favoriteIndex = messages.indexOfFirst { it.id == message.id }
+                                            if (favoriteIndex >= 0) {
+                                                messages[favoriteIndex] = messages[favoriteIndex].copy(isFavorite = !message.isFavorite)
+                                                saveMessages(context, messages)
+                                                status = if (!message.isFavorite) "お気に入りに保存しました" else "お気に入りを解除しました"
+                                            }
+                                        },
+                                        modifier = Modifier.padding(top = 0.dp)
+                                    ) { Text(if (message.isFavorite) "★ お気に入り解除" else "☆ お気に入り") }
                                     if (message.isUser && messages.lastOrNull()?.id == message.id) {
                                         TextButton(
                                             onClick = {
