@@ -120,8 +120,8 @@ private fun characterSettingsChecksum(settings: CharacterSettings): String {
     return digest.joinToString("") { byte -> "%02x".format(byte) }
 }
 
-private fun createCharacterSettingsBackup(settings: CharacterSettings): String =
-    JSONObject()
+private fun createCharacterSettingsBackup(settings: CharacterSettings): String {
+    val backup = JSONObject()
         .put("format", "hiyori-character-settings")
         .put("version", 2)
         .put("exportedAt", System.currentTimeMillis())
@@ -134,24 +134,33 @@ private fun createCharacterSettingsBackup(settings: CharacterSettings): String =
         .put("checksumAlgorithm", "SHA-256")
         .put("checksum", characterSettingsChecksum(settings))
         .toString(2)
+    require(backup.toByteArray(Charsets.UTF_8).size <= MAX_CHARACTER_SETTINGS_BYTES) {
+        "設定ファイルが大きすぎます"
+    }
+    return backup
+}
 
 private const val MAX_MESSAGES = 10000
 private const val MAX_BACKUP_BYTES = 5_000_000
+private const val MAX_CHARACTER_SETTINGS_BYTES = 100_000
 private const val MAX_SUPPORTED_TIMESTAMP_MILLIS = 253402300799999L // 9999-12-31T23:59:59.999Z
 
 private fun readCharacterSettings(context: Context, uri: Uri): CharacterSettings {
-    val content = context.contentResolver.openInputStream(uri)
-        ?.bufferedReader(Charsets.UTF_8)?.use { reader ->
-            val text = StringBuilder()
-            val buffer = CharArray(4096)
+    val jsonBytes = context.contentResolver.openInputStream(uri)
+        ?.use { input ->
+            val content = ByteArrayOutputStream()
+            val buffer = ByteArray(4096)
             while (true) {
-                val count = reader.read(buffer)
+                val count = input.read(buffer)
                 if (count < 0) break
-                require(text.length + count <= 100_000) { "設定ファイルが大きすぎます" }
-                text.append(buffer, 0, count)
+                require(content.size() + count <= MAX_CHARACTER_SETTINGS_BYTES) {
+                    "設定ファイルが大きすぎます"
+                }
+                content.write(buffer, 0, count)
             }
-            text.toString()
+            content.toByteArray()
         } ?: throw IllegalArgumentException("ファイルを読み込めませんでした")
+    val content = jsonBytes.toString(Charsets.UTF_8)
     val root = JSONObject(content)
     require(root.optString("format") == "hiyori-character-settings") { "キャラクター設定ファイルではありません" }
     val rawVersion = if (root.has("version")) strictJsonLong(root.get("version"), "バージョン") else -1L
