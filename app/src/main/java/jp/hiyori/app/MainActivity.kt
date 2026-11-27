@@ -864,7 +864,7 @@ private fun HiyoriApp() {
                                                 } else {
                                                     status = "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}が返事を考えています"
                                                     val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle, responseLength, characterNotes, userCallName, characterName.trim().take(20).ifBlank { "ひよりちゃん" })
-                                                    val response = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim()
+                                                    val response = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim().take(20000)
                                                     if (response.isNotBlank()) {
                                                         val reply = ChatMessage(nextId++.toInt(), response, false)
                                                         messages.add(reply)
