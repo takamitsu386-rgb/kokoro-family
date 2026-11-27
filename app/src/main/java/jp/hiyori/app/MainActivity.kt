@@ -17,6 +17,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +41,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -105,6 +108,7 @@ private const val CHAT_TEXT_SIZE_KEY = "chat_text_size"
 private const val SPEAKING_STYLE_KEY = "speaking_style"
 private const val RESPONSE_LENGTH_KEY = "response_length"
 private const val DRAFT_KEY = "draft_message"
+private const val THEME_MODE_KEY = "theme_mode"
 private const val AVATAR_URI_KEY = "avatar_image_uri"
 
 private fun loadMessages(context: Context): List<ChatMessage> {
@@ -454,6 +458,24 @@ private fun HiyoriApp() {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getBoolean(SPEAK_REPLIES_KEY, true)
         )
+    }
+
+    var themeMode by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(THEME_MODE_KEY, "system") ?: "system"
+        )
+    }
+
+    LaunchedEffect(themeMode) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(THEME_MODE_KEY, themeMode).apply()
+    }
+
+    val useDarkTheme = when (themeMode) {
+        "dark" -> true
+        "light" -> false
+        else -> isSystemInDarkTheme()
     }
 
     var chatTextSize by remember(context) {
@@ -894,7 +916,7 @@ private fun HiyoriApp() {
         )
     }
 
-    MaterialTheme {
+    MaterialTheme(colorScheme = if (useDarkTheme) darkColorScheme() else lightColorScheme()) {
         Surface(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.fillMaxSize().imePadding().padding(16.dp)) {
                 Row(
@@ -1175,6 +1197,29 @@ private fun HiyoriApp() {
                                 else -> "速め"
                             }
                         )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("画面テーマ", style = MaterialTheme.typography.bodySmall)
+                    OutlinedButton(
+                        onClick = {
+                            themeMode = when (themeMode) {
+                                "system" -> "light"
+                                "light" -> "dark"
+                                else -> "system"
+                            }
+                        }
+                    ) {
+                        Text("表示：" + when (themeMode) {
+                            "light" -> "ライト"
+                            "dark" -> "ダーク"
+                            else -> "端末に合わせる"
+                        })
                     }
                 }
 
