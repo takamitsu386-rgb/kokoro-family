@@ -135,6 +135,7 @@ private fun createCharacterSettingsBackup(settings: CharacterSettings): String =
         .toString(2)
 
 private const val MAX_MESSAGES = 10000
+private const val MAX_BACKUP_CHARS = 5_000_000
 private const val MAX_SUPPORTED_TIMESTAMP_MILLIS = 253402300799999L // 9999-12-31T23:59:59.999Z
 
 private fun readCharacterSettings(context: Context, uri: Uri): CharacterSettings {
@@ -289,7 +290,7 @@ private fun createBackup(messages: List<ChatMessage>): String {
                 .put("isFavorite", message.isFavorite)
         )
     }
-    return JSONObject()
+    val backup = JSONObject()
         .put("format", "hiyori-chat-backup")
         .put("version", 6)
         .put("exportedAt", System.currentTimeMillis())
@@ -298,6 +299,10 @@ private fun createBackup(messages: List<ChatMessage>): String {
         .put("checksum", backupChecksum(items))
         .put("messages", items)
         .toString(2)
+    require(backup.length <= MAX_BACKUP_CHARS) {
+        "バックアップファイルが大きすぎます。古い会話を整理してから、もう一度保存してください（上限5MB）"
+    }
+    return backup
 }
 
 private fun createTranscript(messages: List<ChatMessage>, characterName: String = "ひよりちゃん"): String {
@@ -339,7 +344,7 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
             while (true) {
                 val count = reader.read(buffer)
                 if (count < 0) break
-                require(content.length + count <= 5_000_000) {
+                require(content.length + count <= MAX_BACKUP_CHARS) {
                     "バックアップファイルが大きすぎます（上限5MB）"
                 }
                 content.append(buffer, 0, count)
