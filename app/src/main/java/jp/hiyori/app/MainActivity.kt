@@ -910,6 +910,17 @@ private fun HiyoriApp() {
                     ) { Text("テキスト保存") }
                     OutlinedButton(
                         onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            clipboard.setPrimaryClip(
+                                android.content.ClipData.newPlainText("ひよりちゃんとの会話", createTranscript(messages.toList()))
+                            )
+                            status = "会話履歴をコピーしました"
+                        },
+                        enabled = messages.isNotEmpty() && !isGenerating,
+                        modifier = Modifier.weight(1f)
+                    ) { Text("全文コピー") }
+                    OutlinedButton(
+                        onClick = {
                             try {
                                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"
