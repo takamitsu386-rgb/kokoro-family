@@ -85,6 +85,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
 import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.charset.CodingErrorAction
 import java.security.MessageDigest
 
 class MainActivity : ComponentActivity() {
@@ -106,6 +108,13 @@ private data class CharacterSettings(
     val name: String, val userCallName: String, val speakingStyle: String,
     val responseLength: String, val notes: String, val voicePreviewText: String
 )
+
+private fun decodeUtf8Strict(bytes: ByteArray): String {
+    val decoder = Charsets.UTF_8.newDecoder()
+        .onMalformedInput(CodingErrorAction.REPORT)
+        .onUnmappableCharacter(CodingErrorAction.REPORT)
+    return decoder.decode(ByteBuffer.wrap(bytes)).toString()
+}
 
 private fun characterSettingsChecksum(settings: CharacterSettings): String {
     val canonical = JSONArray()
@@ -160,7 +169,7 @@ private fun readCharacterSettings(context: Context, uri: Uri): CharacterSettings
             }
             content.toByteArray()
         } ?: throw IllegalArgumentException("ファイルを読み込めませんでした")
-    val content = jsonBytes.toString(Charsets.UTF_8)
+    val content = decodeUtf8Strict(jsonBytes)
     val root = JSONObject(content)
     require(root.optString("format") == "hiyori-character-settings") { "キャラクター設定ファイルではありません" }
     val rawVersion = if (root.has("version")) strictJsonLong(root.get("version"), "バージョン") else -1L
@@ -361,7 +370,7 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
             }
             content.toByteArray()
         } ?: throw IllegalArgumentException("ファイルを読み込めませんでした")
-    val jsonText = jsonBytes.toString(Charsets.UTF_8)
+    val jsonText = decodeUtf8Strict(jsonBytes)
     val root = JSONObject(jsonText)
     require(root.optString("format") == "hiyori-chat-backup") {
         "ひよりちゃんのバックアップファイルではありません"
