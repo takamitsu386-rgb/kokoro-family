@@ -1654,6 +1654,15 @@ private fun HiyoriApp() {
                     }
                 }
 
+                if (!filtersActive && messages.isNotEmpty()) {
+                    Text(
+                        "履歴：全${messages.size}件・お気に入り${favoriteCount}件",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                    )
+                }
+
                 if (messages.isEmpty()) {
                     Column(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
