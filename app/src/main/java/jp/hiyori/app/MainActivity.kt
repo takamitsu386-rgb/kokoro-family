@@ -480,11 +480,29 @@ private fun highlightSearchText(text: String, query: String, background: android
         }
     }
 }
+private const val MAX_PROMPT_HISTORY_CHARS = 12000
+
 private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String, responseLength: String, characterNotes: String, userCallName: String, characterName: String): String {
-    val conversation = messages.takeLast(12).joinToString("\n") { message ->
+    // 最新12件を優先し、履歴部分の合計文字数を12,000字以内に抑える。
+    // 最新メッセージ自体が上限を超える場合は末尾を残し、直近の文脈を優先する。
+    val conversationParts = ArrayList<String>()
+    var remainingChars = MAX_PROMPT_HISTORY_CHARS
+    for (message in messages.asReversed().take(12)) {
         val speaker = if (message.isUser) "ユーザー" else characterName
-        "$speaker: ${message.text}"
+        val prefix = "$speaker: "
+        if (remainingChars <= prefix.length) break
+        val availableTextChars = remainingChars - prefix.length
+        val text = if (message.text.length > availableTextChars) {
+            message.text.takeLast(availableTextChars)
+        } else {
+            message.text
+        }
+        val line = prefix + text
+        conversationParts.add(line)
+        remainingChars -= line.length + 1
+        if (text.length < message.text.length) break
     }
+    val conversation = conversationParts.asReversed().joinToString("\n")
     return """
         あなたは「$characterName」という日本語で話す会話キャラクターです。
         明るく自然で、親しみやすい言葉づかいをしてください。
