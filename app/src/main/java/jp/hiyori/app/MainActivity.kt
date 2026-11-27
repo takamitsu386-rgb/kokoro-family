@@ -224,7 +224,7 @@ private fun formatMessageTime(createdAt: Long): String {
     if (createdAt <= 0L) return ""
     return java.time.Instant.ofEpochMilli(createdAt)
         .atZone(java.time.ZoneId.systemDefault())
-        .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+        .format(java.time.format.DateTimeFormatter.ofPattern("MM/dd HH:mm"))
 }
 
 private fun highlightSearchText(text: String, query: String, background: androidx.compose.ui.graphics.Color, foreground: androidx.compose.ui.graphics.Color): AnnotatedString {
