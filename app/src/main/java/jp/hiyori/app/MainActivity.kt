@@ -236,7 +236,7 @@ private fun createSingleMessageTranscript(message: ChatMessage): String {
     } else {
         "時刻不明"
     }
-    return speaker + " (" + messageTime + "):\\n" + message.text
+    return speaker + " (" + messageTime + "):\n" + message.text
 }
 
 private fun highlightSearchText(text: String, query: String, background: androidx.compose.ui.graphics.Color, foreground: androidx.compose.ui.graphics.Color): AnnotatedString {
