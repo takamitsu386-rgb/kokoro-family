@@ -108,6 +108,7 @@ private const val CHAT_TEXT_SIZE_KEY = "chat_text_size"
 private const val SPEAKING_STYLE_KEY = "speaking_style"
 private const val RESPONSE_LENGTH_KEY = "response_length"
 private const val CHARACTER_NOTES_KEY = "character_notes"
+private const val USER_CALL_NAME_KEY = "user_call_name"
 private const val DRAFT_KEY = "draft_message"
 private const val THEME_MODE_KEY = "theme_mode"
 private const val AVATAR_URI_KEY = "avatar_image_uri"
@@ -325,7 +326,7 @@ private fun highlightSearchText(text: String, query: String, background: android
         }
     }
 }
-private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String, responseLength: String, characterNotes: String): String {
+private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String, responseLength: String, characterNotes: String, userCallName: String): String {
     val conversation = messages.takeLast(12).joinToString("\n") { message ->
         val speaker = if (message.isUser) "ユーザー" else "ひより"
         "$speaker: ${message.text}"
@@ -333,6 +334,7 @@ private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String
     return """
         あなたは「ひよりちゃん」という日本語で話す会話キャラクターです。
         明るく自然で、親しみやすい言葉づかいをしてください。
+        相手の呼び方: ${userCallName.ifBlank { "特に指定しない" }}。指定がある場合は自然に使い、毎回しつこく繰り返さないでください。
         話し方の設定: $speakingStyle
         返答の長さの設定: $responseLength
         「短め」は要点を1〜2文、「ふつう」は2〜4文、「詳しめ」は必要な背景や具体例も含めて説明してください。
@@ -527,6 +529,18 @@ private fun HiyoriApp() {
             .edit().putString(CHARACTER_NOTES_KEY, characterNotes.take(500)).apply()
     }
 
+    var userCallName by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(USER_CALL_NAME_KEY, "").orEmpty().take(20)
+        )
+    }
+
+    LaunchedEffect(userCallName) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(USER_CALL_NAME_KEY, userCallName.take(20)).apply()
+    }
+
     var speechRate by remember(context) {
         mutableStateOf(
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -662,7 +676,7 @@ private fun HiyoriApp() {
                                                     shouldListenAgain = false
                                                 } else {
                                                     status = "ひよりちゃんが返事を考えています"
-                                                    val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle, responseLength, characterNotes)
+                                                    val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle, responseLength, characterNotes, userCallName)
                                                     val response = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim()
                                                     if (response.isNotBlank()) {
                                                         val reply = ChatMessage(nextId++, response, false)
@@ -1212,6 +1226,16 @@ private fun HiyoriApp() {
                         )
                     }
                 }
+
+                OutlinedTextField(
+                    value = userCallName,
+                    onValueChange = { userCallName = it.take(20) },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    label = { Text("あなたの呼び方（任意）") },
+                    placeholder = { Text("例：〇〇さん、〇〇") },
+                    supportingText = { Text("${userCallName.length}/20字。次の返答から反映されます") },
+                    singleLine = true
+                )
 
                 OutlinedTextField(
                     value = characterNotes,
