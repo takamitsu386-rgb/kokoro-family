@@ -227,6 +227,21 @@ private fun formatMessageTime(createdAt: Long): String {
         .format(java.time.format.DateTimeFormatter.ofPattern("MM/dd HH:mm"))
 }
 
+private fun createRestoreSummary(messages: List<ChatMessage>): String {
+    val userCount = messages.count { it.isUser }
+    val hiyoriCount = messages.size - userCount
+    val timestamps = messages.map { it.createdAt }.filter { it > 0L }.sorted()
+    val dateRange = if (timestamps.isNotEmpty()) {
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        val zone = java.time.ZoneId.systemDefault()
+        val first = java.time.Instant.ofEpochMilli(timestamps.first()).atZone(zone).format(formatter)
+        val last = java.time.Instant.ofEpochMilli(timestamps.last()).atZone(zone).format(formatter)
+        if (first == last) first else first + " ～ " + last
+    } else {
+        "日時情報なし"
+    }
+    return "復元する内容：\\n合計 " + messages.size + "件（あなた " + userCount + "件／ひよりちゃん " + hiyoriCount + "件）\\n期間：" + dateRange
+}
 private fun createSingleMessageTranscript(message: ChatMessage): String {
     val speaker = if (message.isUser) "あなた" else "ひよりちゃん"
     val messageTime = if (message.createdAt > 0L) {
@@ -757,7 +772,7 @@ private fun HiyoriApp() {
             onDismissRequest = { pendingRestore = null },
             title = { Text("バックアップを復元しますか？") },
             text = {
-                Text("現在の会話履歴を置き換えて、${pendingRestore?.size ?: 0}件のメッセージを復元します。現在の履歴を残す場合は、先にバックアップしてください。")
+                Text(createRestoreSummary(pendingRestore.orEmpty()) + "\\n\\n現在の会話履歴を置き換えます。今の履歴を残す場合は、先にバックアップしてください。")
             },
             confirmButton = {
                 TextButton(onClick = {
