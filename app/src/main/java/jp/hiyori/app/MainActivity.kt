@@ -80,6 +80,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
+import java.security.MessageDigest
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -140,6 +141,12 @@ private fun saveMessages(context: Context, messages: List<ChatMessage>) {
         .edit().putString(MESSAGES_KEY, json.toString()).apply()
 }
 
+private fun backupChecksum(items: JSONArray): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+        .digest(items.toString().toByteArray(Charsets.UTF_8))
+    return digest.joinToString("") { byte -> "%02x".format(byte) }
+}
+
 private fun createBackup(messages: List<ChatMessage>): String {
     val items = JSONArray()
     messages.forEach { message ->
@@ -153,9 +160,11 @@ private fun createBackup(messages: List<ChatMessage>): String {
     }
     return JSONObject()
         .put("format", "hiyori-chat-backup")
-        .put("version", 4)
+        .put("version", 5)
         .put("exportedAt", System.currentTimeMillis())
         .put("messageCount", messages.size)
+        .put("checksumAlgorithm", "SHA-256")
+        .put("checksum", backupChecksum(items))
         .put("messages", items)
         .toString(2)
 }
@@ -201,7 +210,7 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
         "ひよりちゃんのバックアップファイルではありません"
     }
     val version = root.optInt("version", 1)
-    require(version in 1..4) { "このバックアップのバージョンには対応していません" }
+    require(version in 1..5) { "このバックアップのバージョンには対応していません" }
     val items = root.getJSONArray("messages")
     require(items.length() <= 10000) { "メッセージ数が上限（10,000件）を超えています" }
     if (version >= 4) {
@@ -217,6 +226,21 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     if (root.has("exportedAt")) {
         require(root.getLong("exportedAt") > 0L) {
             "バックアップの作成日時が不正です"
+        }
+    }
+    if (version >= 5) {
+        require(root.optString("checksumAlgorithm") == "SHA-256") {
+            "バックアップのチェックサム方式に対応していません"
+        }
+        val storedChecksum = root.optString("checksum")
+        require(storedChecksum.matches(Regex("[0-9a-f]{64}"))) {
+            "バックアップのチェックサムがありません、または形式が不正です"
+        }
+        require(MessageDigest.isEqual(
+            storedChecksum.toByteArray(Charsets.US_ASCII),
+            backupChecksum(items).toByteArray(Charsets.US_ASCII)
+        )) {
+            "バックアップの内容が変更または破損しています"
         }
     }
     val restored = ArrayList<ChatMessage>(items.length())
