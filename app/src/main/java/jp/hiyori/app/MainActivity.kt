@@ -277,6 +277,7 @@ private fun createTranscript(messages: List<ChatMessage>, characterName: String 
                 "時刻不明"
             }
             append(" (").append(messageTime).appendLine("):")
+            if (message.isFavorite) appendLine("★ お気に入り")
             appendLine(message.text)
             appendLine()
         }
@@ -399,7 +400,8 @@ private fun createSingleMessageTranscript(message: ChatMessage, characterName: S
     } else {
         "時刻不明"
     }
-    return speaker + " (" + messageTime + "):\n" + message.text
+    val favoriteLabel = if (message.isFavorite) "★ お気に入り\n" else ""
+    return speaker + " (" + messageTime + "):\n" + favoriteLabel + message.text
 }
 
 private fun highlightSearchText(text: String, query: String, background: androidx.compose.ui.graphics.Color, foreground: androidx.compose.ui.graphics.Color): AnnotatedString {
