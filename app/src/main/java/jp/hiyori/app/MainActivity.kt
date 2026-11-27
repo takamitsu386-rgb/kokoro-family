@@ -1099,6 +1099,23 @@ private fun HiyoriApp() {
                                     }
                                     TextButton(
                                         onClick = {
+                                            try {
+                                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                    type = "text/plain"
+                                                    putExtra(Intent.EXTRA_TEXT, message.text)
+                                                }
+                                                context.startActivity(Intent.createChooser(shareIntent, "メッセージを共有"))
+                                                status = "共有先を選択してください"
+                                            } catch (error: Exception) {
+                                                status = "共有を開始できません: " + (error.localizedMessage ?: "不明なエラー")
+                                            }
+                                        },
+                                        modifier = Modifier.padding(top = 0.dp)
+                                    ) {
+                                        Text("共有", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                    TextButton(
+                                        onClick = {
                                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                             clipboard.setPrimaryClip(
                                                 android.content.ClipData.newPlainText(
