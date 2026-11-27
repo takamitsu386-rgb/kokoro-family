@@ -1382,6 +1382,18 @@ private fun HiyoriApp() {
                                             fontSize = chatTextSize.sp
                                         )
                                     }
+                                    if (message.isUser) {
+                                        TextButton(
+                                            onClick = {
+                                                draft = message.text
+                                                status = "発言を入力欄に戻しました。編集して再送信できます"
+                                            },
+                                            enabled = !isGenerating && !continuousVoice,
+                                            modifier = Modifier.padding(top = 0.dp)
+                                        ) {
+                                            Text("再入力", style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
                                     if (!message.isUser) {
                                         TextButton(
                                             onClick = {
