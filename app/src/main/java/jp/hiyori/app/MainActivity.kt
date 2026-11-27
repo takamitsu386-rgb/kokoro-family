@@ -84,6 +84,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
+import java.io.ByteArrayOutputStream
 import java.security.MessageDigest
 
 class MainActivity : ComponentActivity() {
@@ -135,7 +136,7 @@ private fun createCharacterSettingsBackup(settings: CharacterSettings): String =
         .toString(2)
 
 private const val MAX_MESSAGES = 10000
-private const val MAX_BACKUP_CHARS = 5_000_000
+private const val MAX_BACKUP_BYTES = 5_000_000
 private const val MAX_SUPPORTED_TIMESTAMP_MILLIS = 253402300799999L // 9999-12-31T23:59:59.999Z
 
 private fun readCharacterSettings(context: Context, uri: Uri): CharacterSettings {
@@ -299,7 +300,7 @@ private fun createBackup(messages: List<ChatMessage>): String {
         .put("checksum", backupChecksum(items))
         .put("messages", items)
         .toString(2)
-    require(backup.length <= MAX_BACKUP_CHARS) {
+    require(backup.toByteArray(Charsets.UTF_8).size <= MAX_BACKUP_BYTES) {
         "バックアップファイルが大きすぎます。古い会話を整理してから、もう一度保存してください（上限5MB）"
     }
     return backup
@@ -337,20 +338,21 @@ private fun strictJsonLong(value: Any, fieldName: String): Long {
 }
 
 private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
-    val jsonText = context.contentResolver.openInputStream(uri)
-        ?.bufferedReader(Charsets.UTF_8)?.use { reader ->
-            val content = StringBuilder()
-            val buffer = CharArray(8192)
+    val jsonBytes = context.contentResolver.openInputStream(uri)
+        ?.use { input ->
+            val content = ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
             while (true) {
-                val count = reader.read(buffer)
+                val count = input.read(buffer)
                 if (count < 0) break
-                require(content.length + count <= MAX_BACKUP_CHARS) {
+                require(content.size() + count <= MAX_BACKUP_BYTES) {
                     "バックアップファイルが大きすぎます（上限5MB）"
                 }
-                content.append(buffer, 0, count)
+                content.write(buffer, 0, count)
             }
-            content.toString()
+            content.toByteArray()
         } ?: throw IllegalArgumentException("ファイルを読み込めませんでした")
+    val jsonText = jsonBytes.toString(Charsets.UTF_8)
     val root = JSONObject(jsonText)
     require(root.optString("format") == "hiyori-chat-backup") {
         "ひよりちゃんのバックアップファイルではありません"
