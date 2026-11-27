@@ -291,11 +291,20 @@ private fun HiyoriApp() {
             .edit().putString(DRAFT_KEY, draft).apply()
     }
     var historyQuery by remember { mutableStateOf("") }
+    var historySpeakerFilter by remember { mutableStateOf("すべて") }
     var searchResultIndex by remember { mutableStateOf(0) }
-    val filteredMessages = if (historyQuery.isBlank()) messages.toList()
-        else messages.filter { it.text.contains(historyQuery.trim(), ignoreCase = true) }
+    val filteredMessages = messages.filter { message ->
+        val matchesText = historyQuery.isBlank() ||
+            message.text.contains(historyQuery.trim(), ignoreCase = true)
+        val matchesSpeaker = when (historySpeakerFilter) {
+            "あなた" -> message.isUser
+            "ひより" -> !message.isUser
+            else -> true
+        }
+        matchesText && matchesSpeaker
+    }
 
-    LaunchedEffect(historyQuery, messages.size) {
+    LaunchedEffect(historyQuery, historySpeakerFilter, messages.size) {
         searchResultIndex = filteredMessages.lastIndex.coerceAtLeast(0)
         if (filteredMessages.isNotEmpty()) {
             listState.animateScrollToItem(filteredMessages.lastIndex)
@@ -1051,14 +1060,32 @@ private fun HiyoriApp() {
                             }
                         }
                     )
-                    if (historyQuery.isNotBlank()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("すべて", "あなた", "ひより").forEach { filter ->
+                            if (historySpeakerFilter == filter) {
+                                Button(
+                                    onClick = { historySpeakerFilter = filter },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text(filter) }
+                            } else {
+                                OutlinedButton(
+                                    onClick = { historySpeakerFilter = filter },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text(filter) }
+                            }
+                        }
+                    }
+                    if (historyQuery.isNotBlank() || historySpeakerFilter != "すべて") {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                "検索結果：${filteredMessages.size} / ${messages.size}件",
+                                "表示：${filteredMessages.size} / ${messages.size}件",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f)
