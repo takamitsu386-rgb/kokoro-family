@@ -63,6 +63,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.input.ImeAction
 import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
@@ -93,6 +94,7 @@ private const val MESSAGES_KEY = "messages"
 private const val AUTO_SEND_VOICE_KEY = "auto_send_voice"
 private const val SPEAK_REPLIES_KEY = "speak_replies"
 private const val SPEECH_RATE_KEY = "speech_rate"
+private const val CHAT_TEXT_SIZE_KEY = "chat_text_size"
 private const val DRAFT_KEY = "draft_message"
 private const val AVATAR_URI_KEY = "avatar_image_uri"
 
@@ -318,6 +320,18 @@ private fun HiyoriApp() {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getBoolean(SPEAK_REPLIES_KEY, true)
         )
+    }
+
+    var chatTextSize by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getFloat(CHAT_TEXT_SIZE_KEY, 16f).coerceIn(14f, 22f)
+        )
+    }
+
+    LaunchedEffect(chatTextSize) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putFloat(CHAT_TEXT_SIZE_KEY, chatTextSize).apply()
     }
 
     var speechRate by remember(context) {
@@ -870,6 +884,17 @@ private fun HiyoriApp() {
                     }
                     OutlinedButton(
                         onClick = {
+                            chatTextSize = when {
+                                chatTextSize < 15f -> 16f
+                                chatTextSize < 17f -> 18f
+                                chatTextSize < 19f -> 20f
+                                chatTextSize < 21f -> 22f
+                                else -> 14f
+                            }
+                        }
+                    ) { Text("文字サイズ：${chatTextSize.toInt()}") }
+                    OutlinedButton(
+                        onClick = {
                             speechRate = when {
                                 speechRate < 0.9f -> 1.0f
                                 speechRate < 1.1f -> 1.2f
@@ -980,7 +1005,8 @@ private fun HiyoriApp() {
                                                 )
                                                 .padding(horizontal = 14.dp, vertical = 10.dp),
                                             color = if (message.isUser) MaterialTheme.colorScheme.onPrimaryContainer
-                                            else MaterialTheme.colorScheme.onSecondaryContainer
+                                            else MaterialTheme.colorScheme.onSecondaryContainer,
+                                            fontSize = chatTextSize.sp
                                         )
                                     }
                                     TextButton(
