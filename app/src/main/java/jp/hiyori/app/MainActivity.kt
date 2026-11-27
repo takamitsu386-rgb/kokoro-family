@@ -294,7 +294,7 @@ private fun createRestoreSummary(messages: List<ChatMessage>, characterName: Str
     } else {
         "日時情報なし"
     }
-    return "復元する内容：\n合計 " + messages.size + "件（あなた " + userCount + "件／ひよりちゃん " + hiyoriCount + "件）\n期間：" + dateRange
+    return "復元する内容：\n合計 " + messages.size + "件（あなた " + userCount + "件／" + characterName + " " + hiyoriCount + "件）\n期間：" + dateRange
 }
 private fun createSingleMessageTranscript(message: ChatMessage, characterName: String = "ひよりちゃん"): String {
     val speaker = if (message.isUser) "あなた" else characterName
@@ -329,7 +329,7 @@ private fun highlightSearchText(text: String, query: String, background: android
 }
 private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String, responseLength: String, characterNotes: String, userCallName: String, characterName: String): String {
     val conversation = messages.takeLast(12).joinToString("\n") { message ->
-        val speaker = if (message.isUser) "ユーザー" else "ひより"
+        val speaker = if (message.isUser) "ユーザー" else characterName
         "$speaker: ${message.text}"
     }
     return """
@@ -689,7 +689,7 @@ private fun HiyoriApp() {
                                                     continuousVoice = false
                                                     shouldListenAgain = false
                                                 } else {
-                                                    status = "ひよりちゃんが返事を考えています"
+                                                    status = "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}が返事を考えています"
                                                     val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle, responseLength, characterNotes, userCallName, characterName.trim().take(20).ifBlank { "ひよりちゃん" })
                                                     val response = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim()
                                                     if (response.isNotBlank()) {
@@ -709,10 +709,10 @@ private fun HiyoriApp() {
                                                                 shouldListenAgain = false
                                                                 status = "返事は届きましたが、音声の再生に失敗しました"
                                                             } else {
-                                                                status = "ひよりちゃんから返事が届きました"
+                                                                status = "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}から返事が届きました"
                                                             }
                                                         } else {
-                                                            status = "ひよりちゃんから返事が届きました"
+                                                            status = "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}から返事が届きました"
                                                         }
                                                     } else {
                                                         status = "返事を作れませんでした。もう一度送ってください"
@@ -774,7 +774,7 @@ private fun HiyoriApp() {
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ja-JP")
-                    putExtra(RecognizerIntent.EXTRA_PROMPT, "ひよりちゃんに話しかけてください")
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}に話しかけてください")
                 }
                 speechLauncher.launch(intent)
                 isListening = true
@@ -1055,7 +1055,7 @@ private fun HiyoriApp() {
                     Text(
                         text = when {
                             isGenerating -> "連続会話中：返事を準備しています"
-                            isSpeaking -> "連続会話中：ひよりちゃんが話しています"
+                            isSpeaking -> "連続会話中：${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}が話しています"
                             isListening -> "連続会話中：あなたの声を聞いています"
                             else -> "連続会話ON：次の入力を準備しています"
                         },
@@ -1072,7 +1072,7 @@ private fun HiyoriApp() {
                     OutlinedButton(
                         onClick = {
                             ttsEngine?.speak(
-                                "こんにちは。ひよりちゃんです。これからよろしくね。",
+                                "こんにちは。${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}です。これからよろしくね。",
                                 TextToSpeech.QUEUE_FLUSH,
                                 null,
                                 "hiyori_voice_preview"
@@ -1148,7 +1148,7 @@ private fun HiyoriApp() {
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             clipboard.setPrimaryClip(
-                                android.content.ClipData.newPlainText("ひよりちゃんとの検索結果", createTranscript(filteredMessages))
+                                android.content.ClipData.newPlainText("${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}との検索結果", createTranscript(filteredMessages, characterName.trim().take(20).ifBlank { "ひよりちゃん" }))
                             )
                             status = "${filteredMessages.size}件の検索結果をコピーしました"
                         },
@@ -1159,7 +1159,7 @@ private fun HiyoriApp() {
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             clipboard.setPrimaryClip(
-                                android.content.ClipData.newPlainText("ひよりちゃんとの会話", createTranscript(messages.toList(), characterName.trim().take(20).ifBlank { "ひよりちゃん" }))
+                                android.content.ClipData.newPlainText("${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}との会話", createTranscript(messages.toList(), characterName.trim().take(20).ifBlank { "ひよりちゃん" }))
                             )
                             status = "会話履歴をコピーしました"
                         },
@@ -1552,7 +1552,7 @@ private fun HiyoriApp() {
                                             clipboard.setPrimaryClip(
                                                 android.content.ClipData.newPlainText(
                                                     if (message.isUser) "あなたのメッセージ" else "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}の返事",
-                                                    createSingleMessageTranscript(message)
+                                                    createSingleMessageTranscript(message, characterName.trim().take(20).ifBlank { "ひよりちゃん" })
                                                 )
                                             )
                                             status = "メッセージをコピーしました"
@@ -1601,7 +1601,7 @@ private fun HiyoriApp() {
                                     val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                                         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                                         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ja-JP")
-                                        putExtra(RecognizerIntent.EXTRA_PROMPT, "ひよりちゃんに話しかけてください")
+                                        putExtra(RecognizerIntent.EXTRA_PROMPT, "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}に話しかけてください")
                                     }
                                     speechLauncher.launch(intent)
                                     isListening = true
@@ -1626,7 +1626,7 @@ private fun HiyoriApp() {
                                     RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
                                 )
                                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ja-JP")
-                                putExtra(RecognizerIntent.EXTRA_PROMPT, "ひよりちゃんに話しかけてください")
+                                putExtra(RecognizerIntent.EXTRA_PROMPT, "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}に話しかけてください")
                             }
                             speechLauncher.launch(intent)
                             isListening = true
