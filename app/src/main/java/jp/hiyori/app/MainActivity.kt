@@ -1382,6 +1382,19 @@ private fun HiyoriApp() {
                                             fontSize = chatTextSize.sp
                                         )
                                     }
+                                    if (message.isUser && messages.lastOrNull()?.id == message.id) {
+                                        TextButton(
+                                            onClick = {
+                                                messages.removeAll { it.id == message.id }
+                                                saveMessages(context, messages)
+                                                sendMessage(message.text)
+                                            },
+                                            enabled = !isGenerating && !continuousVoice,
+                                            modifier = Modifier.padding(top = 0.dp)
+                                        ) {
+                                            Text("再送信", style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
                                     if (message.isUser) {
                                         TextButton(
                                             onClick = {
