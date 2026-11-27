@@ -134,6 +134,7 @@ private fun createCharacterSettingsBackup(settings: CharacterSettings): String =
         .put("checksum", characterSettingsChecksum(settings))
         .toString(2)
 
+private const val MAX_MESSAGES = 10000
 private const val MAX_SUPPORTED_TIMESTAMP_MILLIS = 253402300799999L // 9999-12-31T23:59:59.999Z
 
 private fun readCharacterSettings(context: Context, uri: Uri): CharacterSettings {
@@ -208,7 +209,7 @@ private fun loadMessages(context: Context): List<ChatMessage> {
     return try {
         require(saved.length <= 5_000_000) { "保存済み会話データが大きすぎます" }
         val json = JSONArray(saved)
-        require(json.length() <= 10000) { "保存済みメッセージ数が上限を超えています" }
+        require(json.length() <= MAX_MESSAGES) { "保存済みメッセージ数が上限を超えています" }
         val restored = ArrayList<ChatMessage>(json.length())
         val usedIds = HashSet<Int>()
         for (index in 0 until json.length()) {
@@ -353,7 +354,7 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     require(rawVersion in 1L..6L) { "このバックアップのバージョンには対応していません" }
     val version = rawVersion.toInt()
     val items = root.getJSONArray("messages")
-    require(items.length() <= 10000) { "メッセージ数が上限（10,000件）を超えています" }
+    require(items.length() <= MAX_MESSAGES) { "メッセージ数が上限（10,000件）を超えています" }
     if (version >= 4) {
         require(root.has("messageCount") && root.has("exportedAt")) {
             "v4バックアップに必要な確認情報がありません"
@@ -827,6 +828,8 @@ private fun HiyoriApp() {
                                     val text = (messageOverride ?: draft).trim()
                                     if (text.length > 20000) {
                                         status = "メッセージは20,000文字以内にしてください"
+                                    } else if (text.isNotEmpty() && !isGenerating && messages.size > MAX_MESSAGES - 2) {
+                                        status = "会話履歴が上限（10,000件）に近づいています。バックアップ後に履歴を整理してください"
                                     } else if (text.isNotEmpty() && !isGenerating && nextId > Int.MAX_VALUE.toLong() - 1L) {
                                         status = "メッセージIDの上限に達しました。新しい会話を開始してください"
                                     } else if (text.isNotEmpty() && !isGenerating) {
