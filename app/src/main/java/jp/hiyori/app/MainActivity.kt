@@ -514,6 +514,8 @@ private fun HiyoriApp() {
     var historySpeakerFilter by remember { mutableStateOf("すべて") }
     var favoritesOnly by remember { mutableStateOf(false) }
     var searchResultIndex by remember { mutableStateOf(0) }
+    val favoriteCount = messages.count { it.isFavorite }
+    val filtersActive = historyQuery.isNotBlank() || historySpeakerFilter != "すべて" || favoritesOnly
     val filteredMessages = messages.filter { message ->
         val matchesText = historyQuery.isBlank() ||
             message.text.contains(historyQuery.trim(), ignoreCase = true)
@@ -525,7 +527,7 @@ private fun HiyoriApp() {
         matchesText && matchesSpeaker && (!favoritesOnly || message.isFavorite)
     }
 
-    LaunchedEffect(historyQuery, historySpeakerFilter, messages.size) {
+    LaunchedEffect(historyQuery, historySpeakerFilter, favoritesOnly, messages.map { it.id to it.isFavorite }) {
         searchResultIndex = filteredMessages.lastIndex.coerceAtLeast(0)
         if (filteredMessages.isNotEmpty()) {
             listState.animateScrollToItem(filteredMessages.lastIndex)
@@ -1598,15 +1600,27 @@ private fun HiyoriApp() {
                     OutlinedButton(
                         onClick = { favoritesOnly = !favoritesOnly },
                         modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
-                    ) { Text(if (favoritesOnly) "★ お気に入りのみ表示中（解除）" else "★ お気に入りのみ表示") }
-                    if ((historyQuery.isNotBlank() || historySpeakerFilter != "すべて" || favoritesOnly) && filteredMessages.isNotEmpty()) {
+                    ) {
+                        Text(if (favoritesOnly) "★ お気に入りのみ表示中（${favoriteCount}件・解除）" else "★ お気に入りのみ表示（${favoriteCount}件）")
+                    }
+                    if (filtersActive) {
+                        OutlinedButton(
+                            onClick = {
+                                historyQuery = ""
+                                historySpeakerFilter = "すべて"
+                                favoritesOnly = false
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                        ) { Text("絞り込みをすべて解除") }
+                    }
+                    if (filtersActive && filteredMessages.isNotEmpty()) {
                         OutlinedButton(
                             onClick = { filteredTranscriptLauncher.launch(timestampedExportName("hiyori-search-results", "txt")) },
                             enabled = !isGenerating,
                             modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                         ) { Text("この検索結果をTXT保存（${filteredMessages.size}件）") }
                     }
-                    if (historyQuery.isNotBlank() || historySpeakerFilter != "すべて" || favoritesOnly) {
+                    if (filtersActive) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
