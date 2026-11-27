@@ -284,6 +284,15 @@ private fun createTranscript(messages: List<ChatMessage>, characterName: String 
     }
 }
 
+private fun strictJsonLong(value: Any, fieldName: String): Long {
+    require(value is Number) { "${fieldName}の形式が不正です" }
+    return try {
+        java.math.BigDecimal(value.toString()).longValueExact()
+    } catch (_: Exception) {
+        throw IllegalArgumentException("${fieldName}の数値が不正です")
+    }
+}
+
 private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     val jsonText = context.contentResolver.openInputStream(uri)
         ?.bufferedReader(Charsets.UTF_8)?.use { reader ->
@@ -303,7 +312,7 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     require(root.optString("format") == "hiyori-chat-backup") {
         "ひよりちゃんのバックアップファイルではありません"
     }
-    val version = root.optInt("version", 1)
+    val version = if (root.has("version")) strictJsonLong(root.get("version"), "バージョン").toInt() else 1
     require(version in 1..6) { "このバックアップのバージョンには対応していません" }
     val items = root.getJSONArray("messages")
     require(items.length() <= 10000) { "メッセージ数が上限（10,000件）を超えています" }
@@ -313,12 +322,12 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
         }
     }
     if (root.has("messageCount")) {
-        require(root.getInt("messageCount") == items.length()) {
+        require(strictJsonLong(root.get("messageCount"), "メッセージ件数") == items.length().toLong()) {
             "バックアップの件数情報と内容が一致しません"
         }
     }
     if (root.has("exportedAt")) {
-        require(root.getLong("exportedAt") > 0L) {
+        require(strictJsonLong(root.get("exportedAt"), "作成日時") > 0L) {
             "バックアップの作成日時が不正です"
         }
     }
@@ -341,8 +350,11 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     val usedIds = HashSet<Int>()
     for (index in 0 until items.length()) {
         val item = items.getJSONObject(index)
-        val id = item.getInt("id")
-        val messageText = item.getString("text")
+        val rawId = strictJsonLong(item.get("id"), "メッセージID")
+        require(rawId in 0..Int.MAX_VALUE.toLong()) { "不正なメッセージIDが含まれています" }
+        val id = rawId.toInt()
+        val messageText = item.get("text") as? String
+            ?: throw IllegalArgumentException("メッセージ本文の形式が不正です")
         require(id >= 0) { "不正なメッセージIDが含まれています" }
         if (item.has("isUser")) require(item.get("isUser") is Boolean) {
             "発言者情報の形式が不正です"
@@ -354,7 +366,7 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
         require(messageText.isNotBlank() && messageText.length <= 20000) {
             "空、または長すぎるメッセージが含まれています"
         }
-        val createdAt = item.optLong("createdAt", 0L)
+        val createdAt = if (item.has("createdAt")) strictJsonLong(item.get("createdAt"), "メッセージ日時") else 0L
         require(createdAt >= 0L) { "不正な日時が含まれています" }
         if (version >= 6) require(item.has("isFavorite")) { "お気に入り情報がありません" }
         restored.add(ChatMessage(id, messageText, item.optBoolean("isUser", true), createdAt, item.optBoolean("isFavorite", false)))
