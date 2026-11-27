@@ -1407,6 +1407,31 @@ private fun HiyoriApp() {
                                             Text("再入力", style = MaterialTheme.typography.labelSmall)
                                         }
                                     }
+                                    if (!message.isUser && messages.lastOrNull()?.id == message.id) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            modifier = Modifier.padding(top = 0.dp)
+                                        ) {
+                                            TextButton(
+                                                onClick = {
+                                                    draft = "直前の説明を、もう少し詳しく教えてください。"
+                                                    status = "詳しく聞く文章を入力欄に入れました"
+                                                },
+                                                enabled = !isGenerating && !continuousVoice
+                                            ) {
+                                                Text("詳しく聞く", style = MaterialTheme.typography.labelSmall)
+                                            }
+                                            TextButton(
+                                                onClick = {
+                                                    draft = "直前の説明を、別の言い方でもう一度説明してください。"
+                                                    status = "言い換えを頼む文章を入力欄に入れました"
+                                                },
+                                                enabled = !isGenerating && !continuousVoice
+                                            ) {
+                                                Text("言い換える", style = MaterialTheme.typography.labelSmall)
+                                            }
+                                        }
+                                    }
                                     if (!message.isUser) {
                                         TextButton(
                                             onClick = {
