@@ -206,18 +206,50 @@ private fun loadMessages(context: Context): List<ChatMessage> {
     val saved = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .getString(MESSAGES_KEY, null) ?: return emptyList()
     return try {
+        require(saved.length <= 5_000_000) { "保存済み会話データが大きすぎます" }
         val json = JSONArray(saved)
-        List(json.length()) { index ->
+        require(json.length() <= 10000) { "保存済みメッセージ数が上限を超えています" }
+        val restored = ArrayList<ChatMessage>(json.length())
+        val usedIds = HashSet<Int>()
+        for (index in 0 until json.length()) {
             val item = json.getJSONObject(index)
-            ChatMessage(
-                item.getInt("id"),
-                item.getString("text"),
-                item.optBoolean("isUser", true),
-                item.optLong("createdAt", 0L),
-                item.optBoolean("isFavorite", false)
+            val rawId = strictJsonLong(item.get("id"), "メッセージID")
+            require(rawId in 0L..Int.MAX_VALUE.toLong()) { "保存済みメッセージIDが不正です" }
+            val id = rawId.toInt()
+            require(usedIds.add(id)) { "保存済みメッセージIDが重複しています" }
+
+            val messageText = item.get("text") as? String
+                ?: throw IllegalArgumentException("保存済み本文の形式が不正です")
+            require(messageText.isNotBlank() && messageText.length <= 20000) {
+                "保存済み本文が空、または上限を超えています"
+            }
+            if (item.has("isUser")) require(item.get("isUser") is Boolean) {
+                "保存済み発言者情報の形式が不正です"
+            }
+            if (item.has("isFavorite")) require(item.get("isFavorite") is Boolean) {
+                "保存済みお気に入り情報の形式が不正です"
+            }
+            val createdAt = if (item.has("createdAt")) {
+                strictJsonLong(item.get("createdAt"), "メッセージ日時")
+            } else {
+                0L
+            }
+            require(createdAt in 0L..MAX_SUPPORTED_TIMESTAMP_MILLIS) {
+                "保存済みメッセージ日時が不正です"
+            }
+            restored.add(
+                ChatMessage(
+                    id = id,
+                    text = messageText,
+                    isUser = if (item.has("isUser")) item.getBoolean("isUser") else true,
+                    createdAt = createdAt,
+                    isFavorite = if (item.has("isFavorite")) item.getBoolean("isFavorite") else false
+                )
             )
         }
+        restored
     } catch (_: Exception) {
+        // 読み込みに失敗しても、元のSharedPreferencesデータは削除・上書きしない。
         emptyList()
     }
 }
