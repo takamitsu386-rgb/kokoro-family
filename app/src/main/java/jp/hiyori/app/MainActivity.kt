@@ -204,6 +204,11 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     require(version in 1..4) { "このバックアップのバージョンには対応していません" }
     val items = root.getJSONArray("messages")
     require(items.length() <= 10000) { "メッセージ数が上限（10,000件）を超えています" }
+    if (version >= 4) {
+        require(root.has("messageCount") && root.has("exportedAt")) {
+            "v4バックアップに必要な確認情報がありません"
+        }
+    }
     if (root.has("messageCount")) {
         require(root.getInt("messageCount") == items.length()) {
             "バックアップの件数情報と内容が一致しません"
