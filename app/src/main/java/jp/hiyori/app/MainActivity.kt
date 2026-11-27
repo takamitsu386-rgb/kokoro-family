@@ -95,6 +95,7 @@ private const val AUTO_SEND_VOICE_KEY = "auto_send_voice"
 private const val SPEAK_REPLIES_KEY = "speak_replies"
 private const val SPEECH_RATE_KEY = "speech_rate"
 private const val CHAT_TEXT_SIZE_KEY = "chat_text_size"
+private const val SPEAKING_STYLE_KEY = "speaking_style"
 private const val DRAFT_KEY = "draft_message"
 private const val AVATAR_URI_KEY = "avatar_image_uri"
 
@@ -200,7 +201,7 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     return restored
 }
 
-private fun buildHiyoriPrompt(messages: List<ChatMessage>): String {
+private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String): String {
     val conversation = messages.takeLast(12).joinToString("\n") { message ->
         val speaker = if (message.isUser) "ユーザー" else "ひより"
         "$speaker: ${message.text}"
@@ -208,6 +209,7 @@ private fun buildHiyoriPrompt(messages: List<ChatMessage>): String {
     return """
         あなたは「ひよりちゃん」という日本語で話す会話キャラクターです。
         明るく自然で、親しみやすい言葉づかいをしてください。
+        話し方の設定: $speakingStyle
         返答は基本的に短めの自然な日本語にしてください。
         相手の話をよく聞き、分からないことは分からないと伝えてください。
         あなたが現実の人間である、または現実世界で相手のそばにいるとは主張しないでください。
@@ -332,6 +334,18 @@ private fun HiyoriApp() {
     LaunchedEffect(chatTextSize) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit().putFloat(CHAT_TEXT_SIZE_KEY, chatTextSize).apply()
+    }
+
+    var speakingStyle by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(SPEAKING_STYLE_KEY, "ふつう") ?: "ふつう"
+        )
+    }
+
+    LaunchedEffect(speakingStyle) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(SPEAKING_STYLE_KEY, speakingStyle).apply()
     }
 
     var speechRate by remember(context) {
@@ -467,7 +481,7 @@ private fun HiyoriApp() {
                                                     shouldListenAgain = false
                                                 } else {
                                                     status = "ひよりちゃんが返事を考えています"
-                                                    val prompt = buildHiyoriPrompt(messages.toList())
+                                                    val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle)
                                                     val response = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim()
                                                     if (response.isNotBlank()) {
                                                         val reply = ChatMessage(nextId++, response, false)
@@ -893,6 +907,15 @@ private fun HiyoriApp() {
                             }
                         }
                     ) { Text("文字サイズ：${chatTextSize.toInt()}") }
+                    OutlinedButton(
+                        onClick = {
+                            speakingStyle = when (speakingStyle) {
+                                "ふつう" -> "おだやか"
+                                "おだやか" -> "元気"
+                                else -> "ふつう"
+                            }
+                        }
+                    ) { Text("話し方：$speakingStyle") }
                     OutlinedButton(
                         onClick = {
                             speechRate = when {
