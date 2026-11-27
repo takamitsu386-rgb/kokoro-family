@@ -1272,6 +1272,25 @@ private fun HiyoriApp() {
                     maxLines = 3
                 )
 
+                OutlinedButton(
+                    onClick = {
+                        val profile = buildString {
+                            appendLine("キャラクター設定")
+                            appendLine("名前：${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}")
+                            appendLine("あなたの呼び方：${userCallName.ifBlank { "指定なし" }}")
+                            appendLine("話し方：$speakingStyle")
+                            appendLine("返答の長さ：$responseLength")
+                            appendLine("性格・設定メモ：${characterNotes.ifBlank { "なし" }}")
+                        }
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("キャラクター設定", profile))
+                        status = "キャラクター設定をコピーしました"
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    Text("キャラクター設定をまとめてコピー")
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
