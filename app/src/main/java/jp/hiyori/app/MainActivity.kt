@@ -147,7 +147,8 @@ private fun readCharacterSettings(context: Context, uri: Uri): CharacterSettings
         } ?: throw IllegalArgumentException("ファイルを読み込めませんでした")
     val root = JSONObject(content)
     require(root.optString("format") == "hiyori-character-settings") { "キャラクター設定ファイルではありません" }
-    const version = root.optInt("version", -1)\n    require(version in 1..2) { "未対応の設定ファイルです" }
+    val version = root.optInt("version", -1)
+    require(version in 1..2) { "未対応の設定ファイルです" }
     require(root.optLong("exportedAt", 0L) > 0L) { "作成日時が不正です" }
     val name = root.getString("name").trim()
     val callName = root.getString("userCallName").trim()
