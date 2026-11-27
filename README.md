@@ -106,6 +106,8 @@ Gemini NanoはAICoreを通じて端末内で推論するため、会話ごとの
 
 このガイドは一般的な導入手順です。実際のPixel 9でのインストール・動作確認が完了したという意味ではありません。アプリの画面やAndroidのバージョンによって表示名は異なる場合があります。
 
+履歴の絞り込みをしていないときも、会話総数とお気に入り登録数を一覧上部に表示します。
+
 ## APKの取得
 1. GitHubの [Android debug build](https://github.com/takamitsu386-rgb/kokoro-family/actions/workflows/android-build.yml) を開く
 2. 最新の成功した実行を選ぶ
