@@ -817,6 +817,30 @@ private fun HiyoriApp() {
         }
     }
 
+    val characterSettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val profile = buildString {
+                    appendLine("キャラクター設定")
+                    appendLine("名前：${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}")
+                    appendLine("あなたの呼び方：${userCallName.ifBlank { "指定なし" }}")
+                    appendLine("話し方：$speakingStyle")
+                    appendLine("返答の長さ：$responseLength")
+                    appendLine("性格・設定メモ：${characterNotes.ifBlank { "なし" }}")
+                    appendLine("声の試聴文：${voicePreviewText.ifBlank { "標準文" }}")
+                }
+                context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)
+                    ?.use { it.write(profile) }
+                    ?: throw IllegalArgumentException("保存先を開けませんでした")
+                status = "キャラクター設定をTXT保存しました"
+            } catch (error: Exception) {
+                status = "設定の保存に失敗しました: ${error.localizedMessage ?: "不明なエラー"}"
+            }
+        }
+    }
+
     val transcriptLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/plain")
     ) { uri ->
@@ -1295,6 +1319,17 @@ private fun HiyoriApp() {
                     minLines = 1,
                     maxLines = 2
                 )
+
+                OutlinedButton(
+                    onClick = {
+                        characterSettingsLauncher.launch(
+                            timestampedExportName("hiyori-character-settings", "txt")
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    Text("キャラクター設定をTXT保存")
+                }
 
                 OutlinedButton(
                     onClick = {
