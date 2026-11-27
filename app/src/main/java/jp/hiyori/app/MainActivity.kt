@@ -1055,6 +1055,23 @@ private fun HiyoriApp() {
                                             fontSize = chatTextSize.sp
                                         )
                                     }
+                                    if (!message.isUser) {
+                                        TextButton(
+                                            onClick = {
+                                                ttsEngine?.speak(
+                                                    message.text,
+                                                    TextToSpeech.QUEUE_FLUSH,
+                                                    null,
+                                                    "hiyori_manual_${message.id}"
+                                                )
+                                                status = "この返事を読み上げています"
+                                            },
+                                            enabled = ttsReady && !continuousVoice,
+                                            modifier = Modifier.padding(top = 0.dp)
+                                        ) {
+                                            Text("読み上げ", style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
                                     TextButton(
                                         onClick = {
                                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
