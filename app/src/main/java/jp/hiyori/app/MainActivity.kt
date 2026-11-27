@@ -304,6 +304,7 @@ private fun HiyoriApp() {
     var status by remember { mutableStateOf("端末内AIの準備状態を確認できます") }
     var isGenerating by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
+    var pendingDeleteMessageId by remember { mutableStateOf<Int?>(null) }
     var pendingRestore by remember { mutableStateOf<List<ChatMessage>?>(null) }
     var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
     var ttsReady by remember { mutableStateOf(false) }
@@ -690,6 +691,34 @@ private fun HiyoriApp() {
             },
             dismissButton = {
                 TextButton(onClick = { pendingRestore = null }) { Text("キャンセル") }
+            }
+        )
+    }
+
+    if (pendingDeleteMessageId != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDeleteMessageId = null },
+            title = { Text("このメッセージを削除しますか？") },
+            text = { Text("選択したメッセージだけを会話履歴から削除します。この操作は元に戻せません。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val targetId = pendingDeleteMessageId
+                    if (targetId != null) {
+                        if (isListening) discardNextSpeechResult = true
+                        continuousVoice = false
+                        shouldListenAgain = false
+                        isSpeaking = false
+                        isListening = false
+                        ttsEngine?.stop()
+                        messages.removeAll { it.id == targetId }
+                        saveMessages(context, messages)
+                        status = "メッセージを削除しました"
+                    }
+                    pendingDeleteMessageId = null
+                }) { Text("削除") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteMessageId = null }) { Text("キャンセル") }
             }
         )
     }
@@ -1124,6 +1153,13 @@ private fun HiyoriApp() {
                                         modifier = Modifier.padding(top = 0.dp)
                                     ) {
                                         Text("共有", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                    TextButton(
+                                        onClick = { pendingDeleteMessageId = message.id },
+                                        enabled = !isGenerating,
+                                        modifier = Modifier.padding(top = 0.dp)
+                                    ) {
+                                        Text("削除", style = MaterialTheme.typography.labelSmall)
                                     }
                                     TextButton(
                                         onClick = {
