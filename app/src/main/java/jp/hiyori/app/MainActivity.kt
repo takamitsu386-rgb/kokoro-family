@@ -427,12 +427,12 @@ private fun HiyoriApp() {
         val mainHandler = Handler(Looper.getMainLooper())
         engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
-                if (utteranceId?.startsWith("hiyori_reply_") == true) {
+                if (utteranceId?.startsWith("hiyori_") == true) {
                     mainHandler.post { isSpeaking = true }
                 }
             }
             override fun onDone(utteranceId: String?) {
-                if (utteranceId?.startsWith("hiyori_reply_") == true) {
+                if (utteranceId?.startsWith("hiyori_") == true) {
                     mainHandler.post {
                         isSpeaking = false
                         if (latestContinuousVoice) shouldListenAgain = true
@@ -441,12 +441,14 @@ private fun HiyoriApp() {
             }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
-                if (utteranceId?.startsWith("hiyori_reply_") == true) {
+                if (utteranceId?.startsWith("hiyori_") == true) {
                     mainHandler.post {
                         isSpeaking = false
-                        status = "読み上げに失敗しました。連続会話を停止しました"
-                        continuousVoice = false
-                        shouldListenAgain = false
+                        status = "音声の読み上げに失敗しました"
+                        if (latestContinuousVoice) {
+                            continuousVoice = false
+                            shouldListenAgain = false
+                        }
                     }
                 }
             }
@@ -1058,6 +1060,7 @@ private fun HiyoriApp() {
                                     if (!message.isUser) {
                                         TextButton(
                                             onClick = {
+                                                isSpeaking = true
                                                 ttsEngine?.speak(
                                                     message.text,
                                                     TextToSpeech.QUEUE_FLUSH,
