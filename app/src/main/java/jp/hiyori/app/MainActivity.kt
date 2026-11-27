@@ -344,6 +344,12 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
         val id = item.getInt("id")
         val messageText = item.getString("text")
         require(id >= 0) { "不正なメッセージIDが含まれています" }
+        if (item.has("isUser")) require(item.get("isUser") is Boolean) {
+            "発言者情報の形式が不正です"
+        }
+        if (item.has("isFavorite")) require(item.get("isFavorite") is Boolean) {
+            "お気に入り情報の形式が不正です"
+        }
         require(usedIds.add(id)) { "重複したメッセージIDが含まれています" }
         require(messageText.isNotBlank() && messageText.length <= 20000) {
             "空、または長すぎるメッセージが含まれています"
