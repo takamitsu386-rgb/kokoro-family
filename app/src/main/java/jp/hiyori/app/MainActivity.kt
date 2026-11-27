@@ -91,7 +91,8 @@ class MainActivity : ComponentActivity() {
 private data class ChatMessage(
     val id: Int,
     val text: String,
-    val isUser: Boolean = true
+    val isUser: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 private const val PREFS_NAME = "hiyori_chat"
@@ -115,7 +116,8 @@ private fun loadMessages(context: Context): List<ChatMessage> {
             ChatMessage(
                 item.getInt("id"),
                 item.getString("text"),
-                item.optBoolean("isUser", true)
+                item.optBoolean("isUser", true),
+                item.optLong("createdAt", 0L)
             )
         }
     } catch (_: Exception) {
@@ -131,6 +133,7 @@ private fun saveMessages(context: Context, messages: List<ChatMessage>) {
                 .put("id", message.id)
                 .put("text", message.text)
                 .put("isUser", message.isUser)
+                .put("createdAt", message.createdAt)
         )
     }
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -145,11 +148,12 @@ private fun createBackup(messages: List<ChatMessage>): String {
                 .put("id", message.id)
                 .put("text", message.text)
                 .put("isUser", message.isUser)
+                .put("createdAt", message.createdAt)
         )
     }
     return JSONObject()
         .put("format", "hiyori-chat-backup")
-        .put("version", 2)
+        .put("version", 3)
         .put("messages", items)
         .toString(2)
 }
@@ -188,7 +192,7 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
         "ひよりちゃんのバックアップファイルではありません"
     }
     val version = root.optInt("version", 1)
-    require(version in 1..2) { "このバックアップのバージョンには対応していません" }
+    require(version in 1..3) { "このバックアップのバージョンには対応していません" }
     val items = root.getJSONArray("messages")
     require(items.length() <= 10000) { "メッセージ数が上限（10,000件）を超えています" }
     val restored = ArrayList<ChatMessage>(items.length())
@@ -202,9 +206,18 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
         require(messageText.isNotBlank() && messageText.length <= 20000) {
             "空、または長すぎるメッセージが含まれています"
         }
-        restored.add(ChatMessage(id, messageText, item.optBoolean("isUser", true)))
+        val createdAt = item.optLong("createdAt", 0L)
+        require(createdAt >= 0L) { "不正な日時が含まれています" }
+        restored.add(ChatMessage(id, messageText, item.optBoolean("isUser", true), createdAt))
     }
     return restored
+}
+
+private fun formatMessageTime(createdAt: Long): String {
+    if (createdAt <= 0L) return ""
+    return java.time.Instant.ofEpochMilli(createdAt)
+        .atZone(java.time.ZoneId.systemDefault())
+        .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
 }
 
 private fun highlightSearchText(text: String, query: String, background: androidx.compose.ui.graphics.Color, foreground: androidx.compose.ui.graphics.Color): AnnotatedString {
@@ -1213,6 +1226,15 @@ private fun HiyoriApp() {
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                     )
+                                    val messageTime = formatMessageTime(message.createdAt)
+                                    if (messageTime.isNotEmpty()) {
+                                        Text(
+                                            text = messageTime,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(horizontal = 4.dp)
+                                        )
+                                    }
                                     SelectionContainer {
                                         Text(
                                             text = highlightSearchText(
