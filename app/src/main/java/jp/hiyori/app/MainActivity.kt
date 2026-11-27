@@ -92,6 +92,7 @@ private const val PREFS_NAME = "hiyori_chat"
 private const val MESSAGES_KEY = "messages"
 private const val AUTO_SEND_VOICE_KEY = "auto_send_voice"
 private const val SPEAK_REPLIES_KEY = "speak_replies"
+private const val SPEECH_RATE_KEY = "speech_rate"
 private const val DRAFT_KEY = "draft_message"
 private const val AVATAR_URI_KEY = "avatar_image_uri"
 
@@ -317,6 +318,19 @@ private fun HiyoriApp() {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getBoolean(SPEAK_REPLIES_KEY, true)
         )
+    }
+
+    var speechRate by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getFloat(SPEECH_RATE_KEY, 1.0f).coerceIn(0.75f, 1.25f)
+        )
+    }
+
+    LaunchedEffect(speechRate, ttsEngine) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putFloat(SPEECH_RATE_KEY, speechRate).apply()
+        ttsEngine?.setSpeechRate(speechRate)
     }
 
     var continuousVoice by remember { mutableStateOf(false) }
@@ -852,6 +866,24 @@ private fun HiyoriApp() {
                 ) {
                     OutlinedButton(onClick = { speakReplies = !speakReplies }) {
                         Text(if (speakReplies) "返事の読み上げON" else "返事の読み上げOFF")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            speechRate = when {
+                                speechRate < 0.9f -> 1.0f
+                                speechRate < 1.1f -> 1.2f
+                                else -> 0.8f
+                            }
+                        },
+                        enabled = ttsReady
+                    ) {
+                        Text(
+                            "読み上げ速度：" + when {
+                                speechRate < 0.9f -> "ゆっくり"
+                                speechRate < 1.1f -> "ふつう"
+                                else -> "速め"
+                            }
+                        )
                     }
                 }
 
