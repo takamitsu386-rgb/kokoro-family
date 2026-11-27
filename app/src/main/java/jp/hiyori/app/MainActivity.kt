@@ -96,6 +96,7 @@ private const val SPEAK_REPLIES_KEY = "speak_replies"
 private const val SPEECH_RATE_KEY = "speech_rate"
 private const val CHAT_TEXT_SIZE_KEY = "chat_text_size"
 private const val SPEAKING_STYLE_KEY = "speaking_style"
+private const val RESPONSE_LENGTH_KEY = "response_length"
 private const val DRAFT_KEY = "draft_message"
 private const val AVATAR_URI_KEY = "avatar_image_uri"
 
@@ -201,7 +202,7 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     return restored
 }
 
-private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String): String {
+private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String, responseLength: String): String {
     val conversation = messages.takeLast(12).joinToString("\n") { message ->
         val speaker = if (message.isUser) "ユーザー" else "ひより"
         "$speaker: ${message.text}"
@@ -348,6 +349,18 @@ private fun HiyoriApp() {
             .edit().putString(SPEAKING_STYLE_KEY, speakingStyle).apply()
     }
 
+    var responseLength by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(RESPONSE_LENGTH_KEY, "ふつう") ?: "ふつう"
+        )
+    }
+
+    LaunchedEffect(responseLength) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(RESPONSE_LENGTH_KEY, responseLength).apply()
+    }
+
     var speechRate by remember(context) {
         mutableStateOf(
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -481,7 +494,7 @@ private fun HiyoriApp() {
                                                     shouldListenAgain = false
                                                 } else {
                                                     status = "ひよりちゃんが返事を考えています"
-                                                    val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle)
+                                                    val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle, responseLength)
                                                     val response = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim()
                                                     if (response.isNotBlank()) {
                                                         val reply = ChatMessage(nextId++, response, false)
@@ -916,6 +929,15 @@ private fun HiyoriApp() {
                             }
                         }
                     ) { Text("話し方：$speakingStyle") }
+                    OutlinedButton(
+                        onClick = {
+                            responseLength = when (responseLength) {
+                                "短め" -> "ふつう"
+                                "ふつう" -> "詳しめ"
+                                else -> "短め"
+                            }
+                        }
+                    ) { Text("返答の長さ：$responseLength") }
                     OutlinedButton(
                         onClick = {
                             speechRate = when {
