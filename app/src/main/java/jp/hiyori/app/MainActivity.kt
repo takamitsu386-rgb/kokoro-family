@@ -1347,9 +1347,9 @@ private fun HiyoriApp() {
                             )
                             status = "${filteredMessages.size}件の検索結果をコピーしました"
                         },
-                        enabled = (historyQuery.isNotBlank() || historySpeakerFilter != "すべて") && filteredMessages.isNotEmpty() && !isGenerating,
+                        enabled = filtersActive && filteredMessages.isNotEmpty() && !isGenerating,
                         modifier = Modifier.weight(1f)
-                    ) { Text("検索結果コピー") }
+                    ) { Text("絞り込み結果コピー") }
                     OutlinedButton(
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
