@@ -1513,6 +1513,18 @@ private fun HiyoriApp() {
                     Text("キャラクター設定をまとめてコピー")
                 }
 
+                OutlinedButton(
+                    onClick = {
+                        val versionInfo = "ひよりちゃん Android v${BuildConfig.VERSION_NAME} (versionCode ${BuildConfig.VERSION_CODE})"
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("アプリバージョン", versionInfo))
+                        status = "アプリバージョンをコピーしました"
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    Text("アプリバージョン：v${BuildConfig.VERSION_NAME}（コピー）")
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
