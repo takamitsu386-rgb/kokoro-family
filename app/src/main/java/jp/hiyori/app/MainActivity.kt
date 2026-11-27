@@ -312,8 +312,9 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     require(root.optString("format") == "hiyori-chat-backup") {
         "ひよりちゃんのバックアップファイルではありません"
     }
-    val version = if (root.has("version")) strictJsonLong(root.get("version"), "バージョン").toInt() else 1
-    require(version in 1..6) { "このバックアップのバージョンには対応していません" }
+    val rawVersion = if (root.has("version")) strictJsonLong(root.get("version"), "バージョン") else 1L
+    require(rawVersion in 1L..6L) { "このバックアップのバージョンには対応していません" }
+    val version = rawVersion.toInt()
     val items = root.getJSONArray("messages")
     require(items.length() <= 10000) { "メッセージ数が上限（10,000件）を超えています" }
     if (version >= 4) {
