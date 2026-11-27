@@ -227,6 +227,18 @@ private fun formatMessageTime(createdAt: Long): String {
         .format(java.time.format.DateTimeFormatter.ofPattern("MM/dd HH:mm"))
 }
 
+private fun createSingleMessageTranscript(message: ChatMessage): String {
+    val speaker = if (message.isUser) "あなた" else "ひよりちゃん"
+    val messageTime = if (message.createdAt > 0L) {
+        java.time.Instant.ofEpochMilli(message.createdAt)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+    } else {
+        "時刻不明"
+    }
+    return speaker + " (" + messageTime + "):\\n" + message.text
+}
+
 private fun highlightSearchText(text: String, query: String, background: androidx.compose.ui.graphics.Color, foreground: androidx.compose.ui.graphics.Color): AnnotatedString {
     val term = query.trim()
     if (term.isEmpty()) return AnnotatedString(text)
@@ -1286,7 +1298,7 @@ private fun HiyoriApp() {
                                             try {
                                                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                                     type = "text/plain"
-                                                    putExtra(Intent.EXTRA_TEXT, message.text)
+                                                    putExtra(Intent.EXTRA_TEXT, createSingleMessageTranscript(message))
                                                 }
                                                 context.startActivity(Intent.createChooser(shareIntent, "メッセージを共有"))
                                                 status = "共有先を選択してください"
@@ -1311,7 +1323,7 @@ private fun HiyoriApp() {
                                             clipboard.setPrimaryClip(
                                                 android.content.ClipData.newPlainText(
                                                     if (message.isUser) "あなたのメッセージ" else "ひよりちゃんの返事",
-                                                    message.text
+                                                    createSingleMessageTranscript(message)
                                                 )
                                             )
                                             status = "メッセージをコピーしました"
