@@ -1016,7 +1016,7 @@ private fun HiyoriApp() {
                                 }
                             }
                         },
-                        enabled = !isGenerating || continuousVoice
+                        enabled = continuousVoice || (!isGenerating && !isListening)
                     ) { Text(if (continuousVoice) "連続会話を停止" else "連続会話を開始") }
                     OutlinedButton(
                         onClick = { autoSendVoice = !autoSendVoice },
@@ -1040,7 +1040,7 @@ private fun HiyoriApp() {
                         } catch (error: Exception) {
                             status = "音声入力を開始できません: " + (error.localizedMessage ?: "不明なエラー")
                         }
-                    }, enabled = !continuousVoice && !isGenerating) { Text("音声入力") }
+                    }, enabled = !continuousVoice && !isGenerating && !isListening) { Text("音声入力") }
                 }
 
                 Row(
