@@ -53,6 +53,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -320,6 +321,7 @@ private fun HiyoriApp() {
 
     var continuousVoice by remember { mutableStateOf(false) }
     var shouldListenAgain by remember { mutableStateOf(false) }
+    val latestContinuousVoice by rememberUpdatedState(continuousVoice)
     var isSpeaking by remember { mutableStateOf(false) }
     var isListening by remember { mutableStateOf(false) }
 
@@ -375,7 +377,7 @@ private fun HiyoriApp() {
                 if (utteranceId?.startsWith("hiyori_reply_") == true) {
                     mainHandler.post {
                         isSpeaking = false
-                        if (continuousVoice) shouldListenAgain = true
+                        if (latestContinuousVoice) shouldListenAgain = true
                     }
                 }
             }
