@@ -373,6 +373,7 @@ private fun HiyoriApp() {
         engine = TextToSpeech(context.applicationContext) { result ->
             if (result == TextToSpeech.SUCCESS) {
                 val languageResult = engine?.setLanguage(Locale.JAPAN)
+                engine?.setSpeechRate(speechRate)
                 ttsReady = languageResult != TextToSpeech.LANG_MISSING_DATA &&
                     languageResult != TextToSpeech.LANG_NOT_SUPPORTED &&
                     languageResult != null
