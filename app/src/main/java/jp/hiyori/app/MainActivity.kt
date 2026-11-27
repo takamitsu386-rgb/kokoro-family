@@ -240,7 +240,7 @@ private fun createRestoreSummary(messages: List<ChatMessage>): String {
     } else {
         "日時情報なし"
     }
-    return "復元する内容：\\n合計 " + messages.size + "件（あなた " + userCount + "件／ひよりちゃん " + hiyoriCount + "件）\\n期間：" + dateRange
+    return "復元する内容：\n合計 " + messages.size + "件（あなた " + userCount + "件／ひよりちゃん " + hiyoriCount + "件）\n期間：" + dateRange
 }
 private fun createSingleMessageTranscript(message: ChatMessage): String {
     val speaker = if (message.isUser) "あなた" else "ひよりちゃん"
@@ -772,7 +772,7 @@ private fun HiyoriApp() {
             onDismissRequest = { pendingRestore = null },
             title = { Text("バックアップを復元しますか？") },
             text = {
-                Text(createRestoreSummary(pendingRestore.orEmpty()) + "\\n\\n現在の会話履歴を置き換えます。今の履歴を残す場合は、先にバックアップしてください。")
+                Text(createRestoreSummary(pendingRestore.orEmpty()) + "\n\n現在の会話履歴を置き換えます。今の履歴を残す場合は、先にバックアップしてください。")
             },
             confirmButton = {
                 TextButton(onClick = {
