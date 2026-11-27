@@ -296,7 +296,7 @@ private fun HiyoriApp() {
         else messages.filter { it.text.contains(historyQuery.trim(), ignoreCase = true) }
 
     LaunchedEffect(historyQuery, messages.size) {
-        searchResultIndex = 0
+        searchResultIndex = filteredMessages.lastIndex.coerceAtLeast(0)
         if (filteredMessages.isNotEmpty()) {
             listState.animateScrollToItem(filteredMessages.lastIndex)
         }
