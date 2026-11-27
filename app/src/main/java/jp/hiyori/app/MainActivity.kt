@@ -899,11 +899,33 @@ private fun HiyoriApp() {
                     ) { Text("履歴削除") }
                 }
 
-                OutlinedButton(
-                    onClick = { transcriptLauncher.launch("hiyori-chat.txt") },
-                    enabled = messages.isNotEmpty() && !isGenerating,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                ) { Text("会話履歴をテキスト保存") }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { transcriptLauncher.launch("hiyori-chat.txt") },
+                        enabled = messages.isNotEmpty() && !isGenerating,
+                        modifier = Modifier.weight(1f)
+                    ) { Text("テキスト保存") }
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_SUBJECT, "ひよりちゃんとの会話")
+                                    putExtra(Intent.EXTRA_TEXT, createTranscript(messages.toList()))
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, "会話を共有"))
+                                status = "共有先を選択してください"
+                            } catch (error: Exception) {
+                                status = "共有を開始できません: " + (error.localizedMessage ?: "不明なエラー")
+                            }
+                        },
+                        enabled = messages.isNotEmpty() && !isGenerating,
+                        modifier = Modifier.weight(1f)
+                    ) { Text("会話を共有") }
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
