@@ -110,6 +110,7 @@ private const val RESPONSE_LENGTH_KEY = "response_length"
 private const val CHARACTER_NOTES_KEY = "character_notes"
 private const val USER_CALL_NAME_KEY = "user_call_name"
 private const val CHARACTER_NAME_KEY = "character_name"
+private const val VOICE_PREVIEW_TEXT_KEY = "voice_preview_text"
 private const val DRAFT_KEY = "draft_message"
 private const val THEME_MODE_KEY = "theme_mode"
 private const val AVATAR_URI_KEY = "avatar_image_uri"
@@ -553,6 +554,18 @@ private fun HiyoriApp() {
         val safeName = characterName.trim().take(20).ifBlank { "ひよりちゃん" }
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit().putString(CHARACTER_NAME_KEY, safeName).apply()
+    }
+
+    var voicePreviewText by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(VOICE_PREVIEW_TEXT_KEY, "").orEmpty().take(100)
+        )
+    }
+
+    LaunchedEffect(voicePreviewText) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(VOICE_PREVIEW_TEXT_KEY, voicePreviewText.take(100)).apply()
     }
 
     var speechRate by remember(context) {
@@ -1072,7 +1085,7 @@ private fun HiyoriApp() {
                     OutlinedButton(
                         onClick = {
                             ttsEngine?.speak(
-                                "こんにちは。${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}です。これからよろしくね。",
+                                voicePreviewText.trim().ifBlank { "こんにちは。${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}です。これからよろしくね。" },
                                 TextToSpeech.QUEUE_FLUSH,
                                 null,
                                 "hiyori_voice_preview"
@@ -1272,6 +1285,17 @@ private fun HiyoriApp() {
                     maxLines = 3
                 )
 
+                OutlinedTextField(
+                    value = voicePreviewText,
+                    onValueChange = { voicePreviewText = it.take(100) },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    label = { Text("声の試聴文（任意）") },
+                    placeholder = { Text("空欄ならキャラクター名入りの標準文を読み上げます") },
+                    supportingText = { Text("${voicePreviewText.length}/100字。声を試すボタンで読み上げます") },
+                    minLines = 1,
+                    maxLines = 2
+                )
+
                 OutlinedButton(
                     onClick = {
                         val profile = buildString {
@@ -1281,6 +1305,7 @@ private fun HiyoriApp() {
                             appendLine("話し方：$speakingStyle")
                             appendLine("返答の長さ：$responseLength")
                             appendLine("性格・設定メモ：${characterNotes.ifBlank { "なし" }}")
+                            appendLine("声の試聴文：${voicePreviewText.ifBlank { "標準文" }}")
                         }
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                         clipboard.setPrimaryClip(android.content.ClipData.newPlainText("キャラクター設定", profile))
