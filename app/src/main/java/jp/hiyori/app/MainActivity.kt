@@ -1087,6 +1087,8 @@ private fun HiyoriApp() {
                     saveMessages(context, messages)
                     nextId = (messages.maxOfOrNull { it.id } ?: -1) + 1
                     historyQuery = ""
+                    historySpeakerFilter = "すべて"
+                    favoritesOnly = false
                     pendingRestore = null
                     status = "${messages.size}件のメッセージを復元しました"
                 }) { Text("復元する") }
@@ -1142,6 +1144,8 @@ private fun HiyoriApp() {
                     saveMessages(context, messages)
                     nextId = 0
                     historyQuery = ""
+                    historySpeakerFilter = "すべて"
+                    favoritesOnly = false
                     showClearDialog = false
                     status = "会話履歴を削除しました"
                 }) { Text("削除") }
