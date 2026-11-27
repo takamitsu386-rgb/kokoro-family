@@ -165,7 +165,14 @@ private fun createTranscript(messages: List<ChatMessage>): String {
         appendLine()
         messages.forEach { message ->
             append(if (message.isUser) "あなた" else "ひよりちゃん")
-            appendLine(":")
+            val messageTime = if (message.createdAt > 0L) {
+                java.time.Instant.ofEpochMilli(message.createdAt)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+            } else {
+                "時刻不明"
+            }
+            append(" (").append(messageTime).appendLine("):")
             appendLine(message.text)
             appendLine()
         }
