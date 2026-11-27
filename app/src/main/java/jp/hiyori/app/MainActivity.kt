@@ -64,6 +64,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
@@ -202,6 +207,25 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
     return restored
 }
 
+private fun highlightSearchText(text: String, query: String, background: androidx.compose.ui.graphics.Color, foreground: androidx.compose.ui.graphics.Color): AnnotatedString {
+    val term = query.trim()
+    if (term.isEmpty()) return AnnotatedString(text)
+    return buildAnnotatedString {
+        var cursor = 0
+        while (cursor < text.length) {
+            val match = text.indexOf(term, cursor, ignoreCase = true)
+            if (match < 0) {
+                append(text.substring(cursor))
+                break
+            }
+            append(text.substring(cursor, match))
+            withStyle(SpanStyle(background = background, color = foreground, fontWeight = FontWeight.Bold)) {
+                append(text.substring(match, match + term.length))
+            }
+            cursor = match + term.length
+        }
+    }
+}
 private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String, responseLength: String): String {
     val conversation = messages.takeLast(12).joinToString("\n") { message ->
         val speaker = if (message.isUser) "ユーザー" else "ひより"
@@ -1169,7 +1193,12 @@ private fun HiyoriApp() {
                                     )
                                     SelectionContainer {
                                         Text(
-                                            text = message.text,
+                                            text = highlightSearchText(
+                                                message.text,
+                                                historyQuery,
+                                                MaterialTheme.colorScheme.tertiaryContainer,
+                                                MaterialTheme.colorScheme.onTertiaryContainer
+                                            ),
                                             modifier = Modifier
                                                 .widthIn(max = 320.dp)
                                                 .background(
