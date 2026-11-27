@@ -662,6 +662,21 @@ private fun HiyoriApp() {
         }
     }
 
+    val filteredTranscriptLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)
+                    ?.use { it.write(createTranscript(filteredMessages.toList())) }
+                    ?: throw IllegalArgumentException("保存先を開けませんでした")
+                status = "検索結果をテキストで保存しました"
+            } catch (error: Exception) {
+                status = "検索結果の保存に失敗しました: ${error.localizedMessage ?: "不明なエラー"}"
+            }
+        }
+    }
+
     val avatarPickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -1101,6 +1116,13 @@ private fun HiyoriApp() {
                                 ) { Text(filter) }
                             }
                         }
+                    }
+                    if ((historyQuery.isNotBlank() || historySpeakerFilter != "すべて") && filteredMessages.isNotEmpty()) {
+                        OutlinedButton(
+                            onClick = { filteredTranscriptLauncher.launch("hiyori-search-results.txt") },
+                            enabled = !isGenerating,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                        ) { Text("この検索結果をTXT保存（${filteredMessages.size}件）") }
                     }
                     if (historyQuery.isNotBlank() || historySpeakerFilter != "すべて") {
                         Row(
