@@ -941,6 +941,17 @@ private fun HiyoriApp() {
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             clipboard.setPrimaryClip(
+                                android.content.ClipData.newPlainText("ひよりちゃんとの検索結果", createTranscript(filteredMessages))
+                            )
+                            status = "${filteredMessages.size}件の検索結果をコピーしました"
+                        },
+                        enabled = historyQuery.isNotBlank() && filteredMessages.isNotEmpty() && !isGenerating,
+                        modifier = Modifier.weight(1f)
+                    ) { Text("検索結果コピー") }
+                    OutlinedButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            clipboard.setPrimaryClip(
                                 android.content.ClipData.newPlainText("ひよりちゃんとの会話", createTranscript(messages.toList()))
                             )
                             status = "会話履歴をコピーしました"
