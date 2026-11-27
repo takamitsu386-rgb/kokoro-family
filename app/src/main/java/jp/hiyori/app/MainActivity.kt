@@ -104,10 +104,23 @@ private data class CharacterSettings(
     val responseLength: String, val notes: String, val voicePreviewText: String
 )
 
+private fun characterSettingsChecksum(settings: CharacterSettings): String {
+    val canonical = JSONArray()
+        .put(settings.name)
+        .put(settings.userCallName)
+        .put(settings.speakingStyle)
+        .put(settings.responseLength)
+        .put(settings.notes)
+        .put(settings.voicePreviewText)
+    val digest = MessageDigest.getInstance("SHA-256")
+        .digest(canonical.toString().toByteArray(Charsets.UTF_8))
+    return digest.joinToString("") { byte -> "%02x".format(byte) }
+}
+
 private fun createCharacterSettingsBackup(settings: CharacterSettings): String =
     JSONObject()
         .put("format", "hiyori-character-settings")
-        .put("version", 1)
+        .put("version", 2)
         .put("exportedAt", System.currentTimeMillis())
         .put("name", settings.name)
         .put("userCallName", settings.userCallName)
@@ -115,6 +128,8 @@ private fun createCharacterSettingsBackup(settings: CharacterSettings): String =
         .put("responseLength", settings.responseLength)
         .put("notes", settings.notes)
         .put("voicePreviewText", settings.voicePreviewText)
+        .put("checksumAlgorithm", "SHA-256")
+        .put("checksum", characterSettingsChecksum(settings))
         .toString(2)
 
 private fun readCharacterSettings(context: Context, uri: Uri): CharacterSettings {
@@ -132,7 +147,7 @@ private fun readCharacterSettings(context: Context, uri: Uri): CharacterSettings
         } ?: throw IllegalArgumentException("ファイルを読み込めませんでした")
     val root = JSONObject(content)
     require(root.optString("format") == "hiyori-character-settings") { "キャラクター設定ファイルではありません" }
-    require(root.optInt("version", -1) == 1) { "未対応の設定ファイルです" }
+    const version = root.optInt("version", -1)\n    require(version in 1..2) { "未対応の設定ファイルです" }
     require(root.optLong("exportedAt", 0L) > 0L) { "作成日時が不正です" }
     val name = root.getString("name").trim()
     val callName = root.getString("userCallName").trim()
@@ -146,7 +161,21 @@ private fun readCharacterSettings(context: Context, uri: Uri): CharacterSettings
     require(length in setOf("短め", "ふつう", "詳しめ")) { "返答の長さの値が不正です" }
     require(notes.length <= 500) { "性格・設定メモは500字以内にしてください" }
     require(preview.length <= 100) { "声の試聴文は100字以内にしてください" }
-    return CharacterSettings(name, callName, style, length, notes, preview)
+    val settings = CharacterSettings(name, callName, style, length, notes, preview)
+    if (version >= 2) {
+        require(root.optString("checksumAlgorithm") == "SHA-256") {
+            "設定ファイルのチェックサム方式に対応していません"
+        }
+        val storedChecksum = root.optString("checksum")
+        require(storedChecksum.matches(Regex("[0-9a-f]{64}"))) {
+            "設定ファイルのチェックサムがありません、または形式が不正です"
+        }
+        require(MessageDigest.isEqual(
+            storedChecksum.toByteArray(Charsets.US_ASCII),
+            characterSettingsChecksum(settings).toByteArray(Charsets.US_ASCII)
+        )) { "設定ファイルの内容が変更または破損しています" }
+    }
+    return settings
 }
 
 private const val PREFS_NAME = "hiyori_chat"
