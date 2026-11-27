@@ -324,6 +324,7 @@ private fun HiyoriApp() {
     val latestContinuousVoice by rememberUpdatedState(continuousVoice)
     var isSpeaking by remember { mutableStateOf(false) }
     var isListening by remember { mutableStateOf(false) }
+    var discardNextSpeechResult by remember { mutableStateOf(false) }
 
     LaunchedEffect(speakReplies) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -482,7 +483,10 @@ private fun HiyoriApp() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         isListening = false
-        if (result.resultCode == Activity.RESULT_OK) {
+        if (discardNextSpeechResult) {
+            discardNextSpeechResult = false
+            status = "停止操作を反映しました。音声認識結果は送信しません"
+        } else if (result.resultCode == Activity.RESULT_OK) {
             val spokenText = result.data
                 ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
                 ?.firstOrNull()
@@ -638,6 +642,7 @@ private fun HiyoriApp() {
             text = { Text("この端末に保存された会話をすべて削除します。バックアップがない場合、元に戻せません。") },
             confirmButton = {
                 TextButton(onClick = {
+                    if (isListening) discardNextSpeechResult = true
                     continuousVoice = false
                     shouldListenAgain = false
                     isSpeaking = false
@@ -969,6 +974,7 @@ private fun HiyoriApp() {
                     OutlinedButton(
                         onClick = {
                             if (continuousVoice) {
+                                if (isListening) discardNextSpeechResult = true
                                 continuousVoice = false
                                 shouldListenAgain = false
                                 isListening = false
