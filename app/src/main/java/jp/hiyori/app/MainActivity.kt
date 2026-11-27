@@ -107,6 +107,7 @@ private const val SPEECH_RATE_KEY = "speech_rate"
 private const val CHAT_TEXT_SIZE_KEY = "chat_text_size"
 private const val SPEAKING_STYLE_KEY = "speaking_style"
 private const val RESPONSE_LENGTH_KEY = "response_length"
+private const val CHARACTER_NOTES_KEY = "character_notes"
 private const val DRAFT_KEY = "draft_message"
 private const val THEME_MODE_KEY = "theme_mode"
 private const val AVATAR_URI_KEY = "avatar_image_uri"
@@ -324,7 +325,7 @@ private fun highlightSearchText(text: String, query: String, background: android
         }
     }
 }
-private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String, responseLength: String): String {
+private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String, responseLength: String, characterNotes: String): String {
     val conversation = messages.takeLast(12).joinToString("\n") { message ->
         val speaker = if (message.isUser) "ユーザー" else "ひより"
         "$speaker: ${message.text}"
@@ -514,6 +515,18 @@ private fun HiyoriApp() {
             .edit().putString(RESPONSE_LENGTH_KEY, responseLength).apply()
     }
 
+    var characterNotes by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(CHARACTER_NOTES_KEY, "").orEmpty().take(500)
+        )
+    }
+
+    LaunchedEffect(characterNotes) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(CHARACTER_NOTES_KEY, characterNotes.take(500)).apply()
+    }
+
     var speechRate by remember(context) {
         mutableStateOf(
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -649,7 +662,7 @@ private fun HiyoriApp() {
                                                     shouldListenAgain = false
                                                 } else {
                                                     status = "ひよりちゃんが返事を考えています"
-                                                    val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle, responseLength)
+                                                    val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle, responseLength, characterNotes)
                                                     val response = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim()
                                                     if (response.isNotBlank()) {
                                                         val reply = ChatMessage(nextId++, response, false)
@@ -1199,6 +1212,17 @@ private fun HiyoriApp() {
                         )
                     }
                 }
+
+                OutlinedTextField(
+                    value = characterNotes,
+                    onValueChange = { characterNotes = it.take(500) },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    label = { Text("キャラの性格・設定メモ（任意）") },
+                    placeholder = { Text("例：好奇心旺盛で、動物や星の話が好き") },
+                    supportingText = { Text("${characterNotes.length}/500字。次の返答から反映されます") },
+                    minLines = 1,
+                    maxLines = 3
+                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
