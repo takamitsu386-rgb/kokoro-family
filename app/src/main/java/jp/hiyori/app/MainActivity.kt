@@ -995,7 +995,7 @@ private fun HiyoriApp() {
                             )
                             status = "${filteredMessages.size}件の検索結果をコピーしました"
                         },
-                        enabled = historyQuery.isNotBlank() && filteredMessages.isNotEmpty() && !isGenerating,
+                        enabled = (historyQuery.isNotBlank() || historySpeakerFilter != "すべて") && filteredMessages.isNotEmpty() && !isGenerating,
                         modifier = Modifier.weight(1f)
                     ) { Text("検索結果コピー") }
                     OutlinedButton(
