@@ -227,6 +227,12 @@ private fun formatMessageTime(createdAt: Long): String {
         .format(java.time.format.DateTimeFormatter.ofPattern("MM/dd HH:mm"))
 }
 
+private fun timestampedExportName(prefix: String, extension: String): String {
+    val timestamp = java.time.LocalDateTime.now().format(
+        java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmm")
+    )
+    return prefix + "-" + timestamp + "." + extension
+}
 private fun createRestoreSummary(messages: List<ChatMessage>): String {
     val userCount = messages.count { it.isUser }
     val hiyoriCount = messages.size - userCount
@@ -1006,7 +1012,7 @@ private fun HiyoriApp() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(onClick = {
-                        exportLauncher.launch("hiyori-backup.json")
+                        exportLauncher.launch(timestampedExportName("hiyori-backup", "json"))
                     }, modifier = Modifier.weight(1f)) { Text("バックアップ") }
                     OutlinedButton(
                         onClick = {
@@ -1030,7 +1036,7 @@ private fun HiyoriApp() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(
-                        onClick = { transcriptLauncher.launch("hiyori-chat.txt") },
+                        onClick = { transcriptLauncher.launch(timestampedExportName("hiyori-chat", "txt")) },
                         enabled = messages.isNotEmpty() && !isGenerating,
                         modifier = Modifier.weight(1f)
                     ) { Text("テキスト保存") }
@@ -1166,7 +1172,7 @@ private fun HiyoriApp() {
                     }
                     if ((historyQuery.isNotBlank() || historySpeakerFilter != "すべて") && filteredMessages.isNotEmpty()) {
                         OutlinedButton(
-                            onClick = { filteredTranscriptLauncher.launch("hiyori-search-results.txt") },
+                            onClick = { filteredTranscriptLauncher.launch(timestampedExportName("hiyori-search-results", "txt")) },
                             enabled = !isGenerating,
                             modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                         ) { Text("この検索結果をTXT保存（${filteredMessages.size}件）") }
