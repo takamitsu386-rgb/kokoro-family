@@ -950,6 +950,21 @@ private fun HiyoriApp() {
                                             else MaterialTheme.colorScheme.onSecondaryContainer
                                         )
                                     }
+                                    TextButton(
+                                        onClick = {
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                            clipboard.setPrimaryClip(
+                                                android.content.ClipData.newPlainText(
+                                                    if (message.isUser) "あなたのメッセージ" else "ひよりちゃんの返事",
+                                                    message.text
+                                                )
+                                            )
+                                            status = "メッセージをコピーしました"
+                                        },
+                                        modifier = Modifier.padding(top = 0.dp)
+                                    ) {
+                                        Text("コピー", style = MaterialTheme.typography.labelSmall)
+                                    }
                                 }
                             }
                         }
