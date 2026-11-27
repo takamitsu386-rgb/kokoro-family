@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.text.KeyboardActions
@@ -354,6 +355,13 @@ private fun formatMessageTime(createdAt: Long): String {
     return java.time.Instant.ofEpochMilli(createdAt)
         .atZone(java.time.ZoneId.systemDefault())
         .format(java.time.format.DateTimeFormatter.ofPattern("MM/dd HH:mm"))
+}
+
+private fun formatMessageDate(createdAt: Long): String {
+    if (createdAt <= 0L) return ""
+    return java.time.Instant.ofEpochMilli(createdAt)
+        .atZone(java.time.ZoneId.systemDefault())
+        .format(java.time.format.DateTimeFormatter.ofPattern("yyyy年M月d日 (E)", Locale.JAPAN))
 }
 
 private fun timestampedExportName(prefix: String, extension: String): String {
@@ -1663,7 +1671,18 @@ private fun HiyoriApp() {
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(filteredMessages, key = { it.id }) { message ->
+                        itemsIndexed(filteredMessages, key = { _, message -> message.id }) { index, message ->
+                            val currentDate = formatMessageDate(message.createdAt)
+                            val previousDate = if (index > 0) formatMessageDate(filteredMessages[index - 1].createdAt) else ""
+                            if (currentDate.isNotEmpty() && currentDate != previousDate) {
+                                Text(
+                                    text = currentDate,
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
