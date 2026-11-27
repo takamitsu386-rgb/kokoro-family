@@ -248,6 +248,7 @@ private fun createBackup(messages: List<ChatMessage>): String {
                 .put("text", message.text)
                 .put("isUser", message.isUser)
                 .put("createdAt", message.createdAt)
+                .put("isFavorite", message.isFavorite)
         )
     }
     return JSONObject()
