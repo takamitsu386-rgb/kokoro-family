@@ -560,7 +560,7 @@ private fun HiyoriApp() {
         }
     }
 
-    var nextId by remember { mutableStateOf((messages.maxOfOrNull { it.id } ?: -1) + 1) }
+    var nextId by remember { mutableStateOf((messages.maxOfOrNull { it.id }?.toLong() ?: -1L) + 1L) }
     var status by remember { mutableStateOf("端末内AIの準備状態を確認できます") }
     var isGenerating by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
@@ -795,8 +795,10 @@ private fun HiyoriApp() {
                                     val text = (messageOverride ?: draft).trim()
                                     if (text.length > 20000) {
                                         status = "メッセージは20,000文字以内にしてください"
+                                    } else if (text.isNotEmpty() && !isGenerating && nextId > Int.MAX_VALUE.toLong() - 1L) {
+                                        status = "メッセージIDの上限に達しました。新しい会話を開始してください"
                                     } else if (text.isNotEmpty() && !isGenerating) {
-                                        val userMessage = ChatMessage(nextId++, text, true)
+                                        val userMessage = ChatMessage(nextId++.toInt(), text, true)
                                         messages.add(userMessage)
                                         saveMessages(context, messages)
                                         draft = ""
@@ -829,7 +831,7 @@ private fun HiyoriApp() {
                                                     val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle, responseLength, characterNotes, userCallName, characterName.trim().take(20).ifBlank { "ひよりちゃん" })
                                                     val response = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim()
                                                     if (response.isNotBlank()) {
-                                                        val reply = ChatMessage(nextId++, response, false)
+                                                        val reply = ChatMessage(nextId++.toInt(), response, false)
                                                         messages.add(reply)
                                                         saveMessages(context, messages)
                                                         if (ttsReady && speakReplies) {
@@ -1111,7 +1113,7 @@ private fun HiyoriApp() {
                     messages.clear()
                     messages.addAll(restored)
                     saveMessages(context, messages)
-                    nextId = (messages.maxOfOrNull { it.id } ?: -1) + 1
+                    nextId = (messages.maxOfOrNull { it.id }?.toLong() ?: -1L) + 1L
                     historyQuery = ""
                     historySpeakerFilter = "すべて"
                     favoritesOnly = false
@@ -1168,7 +1170,7 @@ private fun HiyoriApp() {
                     ttsEngine?.stop()
                     messages.clear()
                     saveMessages(context, messages)
-                    nextId = 0
+                    nextId = 0L
                     historyQuery = ""
                     historySpeakerFilter = "すべて"
                     favoritesOnly = false
