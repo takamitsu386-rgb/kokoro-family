@@ -1840,6 +1840,8 @@ private fun HiyoriApp() {
                                     if (message.isUser && messages.lastOrNull()?.id == message.id) {
                                         TextButton(
                                             onClick = {
+                                                // 最後の未返信メッセージのIDを再利用し、ID上限付近でも安全に再試行できるようにします。
+                                                nextId = message.id.toLong()
                                                 messages.removeAll { it.id == message.id }
                                                 saveMessages(context, messages)
                                                 sendMessage(message.text)
