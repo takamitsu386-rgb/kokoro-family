@@ -291,10 +291,12 @@ private fun HiyoriApp() {
             .edit().putString(DRAFT_KEY, draft).apply()
     }
     var historyQuery by remember { mutableStateOf("") }
+    var searchResultIndex by remember { mutableStateOf(0) }
     val filteredMessages = if (historyQuery.isBlank()) messages.toList()
         else messages.filter { it.text.contains(historyQuery.trim(), ignoreCase = true) }
 
     LaunchedEffect(historyQuery, messages.size) {
+        searchResultIndex = 0
         if (filteredMessages.isNotEmpty()) {
             listState.animateScrollToItem(filteredMessages.lastIndex)
         }
@@ -1050,12 +1052,36 @@ private fun HiyoriApp() {
                         }
                     )
                     if (historyQuery.isNotBlank()) {
-                        Text(
-                            "検索結果：${filteredMessages.size} / ${messages.size}件",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                "検索結果：${filteredMessages.size} / ${messages.size}件",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedButton(
+                                onClick = {
+                                    if (filteredMessages.isNotEmpty()) {
+                                        searchResultIndex = (searchResultIndex - 1 + filteredMessages.size) % filteredMessages.size
+                                        scope.launch { listState.animateScrollToItem(searchResultIndex) }
+                                    }
+                                },
+                                enabled = filteredMessages.isNotEmpty()
+                            ) { Text("前へ") }
+                            OutlinedButton(
+                                onClick = {
+                                    if (filteredMessages.isNotEmpty()) {
+                                        searchResultIndex = (searchResultIndex + 1) % filteredMessages.size
+                                        scope.launch { listState.animateScrollToItem(searchResultIndex) }
+                                    }
+                                },
+                                enabled = filteredMessages.isNotEmpty()
+                            ) { Text("次へ") }
+                        }
                     }
                 }
 
