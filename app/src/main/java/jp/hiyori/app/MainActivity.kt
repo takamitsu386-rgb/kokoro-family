@@ -153,7 +153,9 @@ private fun createBackup(messages: List<ChatMessage>): String {
     }
     return JSONObject()
         .put("format", "hiyori-chat-backup")
-        .put("version", 3)
+        .put("version", 4)
+        .put("exportedAt", System.currentTimeMillis())
+        .put("messageCount", messages.size)
         .put("messages", items)
         .toString(2)
 }
@@ -199,9 +201,19 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
         "ひよりちゃんのバックアップファイルではありません"
     }
     val version = root.optInt("version", 1)
-    require(version in 1..3) { "このバックアップのバージョンには対応していません" }
+    require(version in 1..4) { "このバックアップのバージョンには対応していません" }
     val items = root.getJSONArray("messages")
     require(items.length() <= 10000) { "メッセージ数が上限（10,000件）を超えています" }
+    if (root.has("messageCount")) {
+        require(root.getInt("messageCount") == items.length()) {
+            "バックアップの件数情報と内容が一致しません"
+        }
+    }
+    if (root.has("exportedAt")) {
+        require(root.getLong("exportedAt") > 0L) {
+            "バックアップの作成日時が不正です"
+        }
+    }
     val restored = ArrayList<ChatMessage>(items.length())
     val usedIds = HashSet<Int>()
     for (index in 0 until items.length()) {
