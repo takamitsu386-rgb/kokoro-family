@@ -99,6 +99,56 @@ private data class ChatMessage(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+private data class CharacterSettings(
+    val name: String, val userCallName: String, val speakingStyle: String,
+    val responseLength: String, val notes: String, val voicePreviewText: String
+)
+
+private fun createCharacterSettingsBackup(settings: CharacterSettings): String =
+    JSONObject()
+        .put("format", "hiyori-character-settings")
+        .put("version", 1)
+        .put("exportedAt", System.currentTimeMillis())
+        .put("name", settings.name)
+        .put("userCallName", settings.userCallName)
+        .put("speakingStyle", settings.speakingStyle)
+        .put("responseLength", settings.responseLength)
+        .put("notes", settings.notes)
+        .put("voicePreviewText", settings.voicePreviewText)
+        .toString(2)
+
+private fun readCharacterSettings(context: Context, uri: Uri): CharacterSettings {
+    val content = context.contentResolver.openInputStream(uri)
+        ?.bufferedReader(Charsets.UTF_8)?.use { reader ->
+            val text = StringBuilder()
+            val buffer = CharArray(4096)
+            while (true) {
+                val count = reader.read(buffer)
+                if (count < 0) break
+                require(text.length + count <= 100_000) { "設定ファイルが大きすぎます" }
+                text.append(buffer, 0, count)
+            }
+            text.toString()
+        } ?: throw IllegalArgumentException("ファイルを読み込めませんでした")
+    val root = JSONObject(content)
+    require(root.optString("format") == "hiyori-character-settings") { "キャラクター設定ファイルではありません" }
+    require(root.optInt("version", -1) == 1) { "未対応の設定ファイルです" }
+    require(root.optLong("exportedAt", 0L) > 0L) { "作成日時が不正です" }
+    val name = root.getString("name").trim()
+    val callName = root.getString("userCallName").trim()
+    val style = root.getString("speakingStyle")
+    val length = root.getString("responseLength")
+    val notes = root.getString("notes")
+    val preview = root.getString("voicePreviewText")
+    require(name.isNotBlank() && name.length <= 20) { "キャラクター名は1〜20字で指定してください" }
+    require(callName.length <= 20) { "呼び方は20字以内にしてください" }
+    require(style in setOf("ふつう", "おだやか", "元気")) { "話し方の値が不正です" }
+    require(length in setOf("短め", "ふつう", "詳しめ")) { "返答の長さの値が不正です" }
+    require(notes.length <= 500) { "性格・設定メモは500字以内にしてください" }
+    require(preview.length <= 100) { "声の試聴文は100字以内にしてください" }
+    return CharacterSettings(name, callName, style, length, notes, preview)
+}
+
 private const val PREFS_NAME = "hiyori_chat"
 private const val MESSAGES_KEY = "messages"
 private const val AUTO_SEND_VOICE_KEY = "auto_send_voice"
@@ -444,6 +494,7 @@ private fun HiyoriApp() {
     var showClearDialog by remember { mutableStateOf(false) }
     var pendingDeleteMessageId by remember { mutableStateOf<Int?>(null) }
     var pendingRestore by remember { mutableStateOf<List<ChatMessage>?>(null) }
+    var pendingCharacterSettings by remember { mutableStateOf<CharacterSettings?>(null) }
     var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
     var ttsReady by remember { mutableStateOf(false) }
     var autoSendVoice by remember(context) {
@@ -841,6 +892,40 @@ private fun HiyoriApp() {
         }
     }
 
+
+    val characterSettingsExportJsonLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val settings = CharacterSettings(
+                    characterName.trim().take(20).ifBlank { "ひよりちゃん" },
+                    userCallName.trim().take(20), speakingStyle, responseLength,
+                    characterNotes.take(500), voicePreviewText.take(100)
+                )
+                context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)
+                    ?.use { it.write(createCharacterSettingsBackup(settings)) }
+                    ?: throw IllegalArgumentException("保存先を開けませんでした")
+                status = "キャラクター設定をJSON保存しました"
+            } catch (error: Exception) {
+                status = "設定の保存に失敗しました: ${error.localizedMessage ?: "不明なエラー"}"
+            }
+        }
+    }
+
+    val characterSettingsImportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                pendingCharacterSettings = readCharacterSettings(context, uri)
+                status = "設定ファイルを読み込みました。内容を確認してください"
+            } catch (error: Exception) {
+                status = "設定を読み込めませんでした: ${error.localizedMessage ?: "形式を確認してください"}"
+            }
+        }
+    }
+
     val transcriptLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/plain")
     ) { uri ->
@@ -912,6 +997,33 @@ private fun HiyoriApp() {
                 status = "読み込めませんでした: ${error.localizedMessage ?: "形式を確認してください"}"
             }
         }
+    }
+
+
+    if (pendingCharacterSettings != null) {
+        val imported = pendingCharacterSettings!!
+        AlertDialog(
+            onDismissRequest = { pendingCharacterSettings = null },
+            title = { Text("キャラクター設定を読み込みますか？") },
+            text = {
+                Text("名前：${imported.name}\nあなたの呼び方：${imported.userCallName.ifBlank { "指定なし" }}\n話し方：${imported.speakingStyle}\n返答の長さ：${imported.responseLength}\n性格・設定メモ：${if (imported.notes.isBlank()) "なし" else imported.notes}\n声の試聴文：${if (imported.voicePreviewText.isBlank()) "標準文" else imported.voicePreviewText}\n\n現在のキャラクター設定を置き換えます。会話履歴と登録画像は変更しません。")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    characterName = imported.name
+                    userCallName = imported.userCallName
+                    speakingStyle = imported.speakingStyle
+                    responseLength = imported.responseLength
+                    characterNotes = imported.notes
+                    voicePreviewText = imported.voicePreviewText
+                    pendingCharacterSettings = null
+                    status = "キャラクター設定を復元しました"
+                }) { Text("読み込む") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingCharacterSettings = null }) { Text("キャンセル") }
+            }
+        )
     }
 
     if (pendingRestore != null) {
@@ -1329,6 +1441,26 @@ private fun HiyoriApp() {
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                 ) {
                     Text("キャラクター設定をTXT保存")
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        characterSettingsExportJsonLauncher.launch(
+                            timestampedExportName("hiyori-character-settings", "json")
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    Text("キャラクター設定をJSON保存")
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        characterSettingsImportLauncher.launch(arrayOf("application/json", "text/json"))
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    Text("キャラクター設定をJSONから読み込む")
                 }
 
                 OutlinedButton(
