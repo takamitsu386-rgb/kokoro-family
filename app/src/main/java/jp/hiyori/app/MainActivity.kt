@@ -134,6 +134,8 @@ private fun createCharacterSettingsBackup(settings: CharacterSettings): String =
         .put("checksum", characterSettingsChecksum(settings))
         .toString(2)
 
+private const val MAX_SUPPORTED_TIMESTAMP_MILLIS = 253402300799999L // 9999-12-31T23:59:59.999Z
+
 private fun readCharacterSettings(context: Context, uri: Uri): CharacterSettings {
     val content = context.contentResolver.openInputStream(uri)
         ?.bufferedReader(Charsets.UTF_8)?.use { reader ->
@@ -152,7 +154,7 @@ private fun readCharacterSettings(context: Context, uri: Uri): CharacterSettings
     val rawVersion = if (root.has("version")) strictJsonLong(root.get("version"), "バージョン") else -1L
     require(rawVersion in 1L..2L) { "未対応の設定ファイルです" }
     val version = rawVersion.toInt()
-    require(root.has("exportedAt") && strictJsonLong(root.get("exportedAt"), "作成日時") > 0L) {
+    require(root.has("exportedAt") && strictJsonLong(root.get("exportedAt"), "作成日時") in 1L..MAX_SUPPORTED_TIMESTAMP_MILLIS) {
         "作成日時が不正です"
     }
     val name = root.getString("name").trim()
@@ -331,7 +333,7 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
         }
     }
     if (root.has("exportedAt")) {
-        require(strictJsonLong(root.get("exportedAt"), "作成日時") > 0L) {
+        require(strictJsonLong(root.get("exportedAt"), "作成日時") in 1L..MAX_SUPPORTED_TIMESTAMP_MILLIS) {
             "バックアップの作成日時が不正です"
         }
     }
@@ -371,7 +373,7 @@ private fun readBackup(context: Context, uri: Uri): List<ChatMessage> {
             "空、または長すぎるメッセージが含まれています"
         }
         val createdAt = if (item.has("createdAt")) strictJsonLong(item.get("createdAt"), "メッセージ日時") else 0L
-        require(createdAt >= 0L) { "不正な日時が含まれています" }
+        require(createdAt in 0L..MAX_SUPPORTED_TIMESTAMP_MILLIS) { "不正な日時が含まれています" }
         if (version >= 6) require(item.has("isFavorite")) { "お気に入り情報がありません" }
         restored.add(ChatMessage(id, messageText, item.optBoolean("isUser", true), createdAt, item.optBoolean("isFavorite", false)))
     }
