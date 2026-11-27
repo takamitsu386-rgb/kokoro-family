@@ -229,7 +229,7 @@ private fun formatMessageTime(createdAt: Long): String {
 
 private fun timestampedExportName(prefix: String, extension: String): String {
     val timestamp = java.time.LocalDateTime.now().format(
-        java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmm")
+        java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS")
     )
     return prefix + "-" + timestamp + "." + extension
 }
