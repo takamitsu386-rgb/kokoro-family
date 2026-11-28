@@ -860,6 +860,7 @@ private fun HiyoriApp() {
     var pendingCharacterSettings by remember { mutableStateOf<CharacterSettings?>(null) }
     var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
     var ttsReady by remember { mutableStateOf(false) }
+    var startupGreetingHandled by remember { mutableStateOf(false) }
     var autoSendVoice by remember(context) {
         mutableStateOf(
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -1110,6 +1111,28 @@ private fun HiyoriApp() {
             engine?.shutdown()
             ttsEngine = null
             ttsReady = false
+        }
+    }
+
+    // 起動時の挨拶は、音声エンジンの準備ができたときに一度だけ再生する。
+    // マイクや音声認識は自動で開始しない。
+    LaunchedEffect(ttsReady, speakReplies, ttsEngine) {
+        if (ttsReady && !startupGreetingHandled) {
+            startupGreetingHandled = true
+            if (speakReplies) {
+                val safeCharacterName = truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }
+                val greeting = safeCharacterName + "です。こんにちは。今日は何をお話ししましょうか？"
+                val result = ttsEngine?.let { engine ->
+                    speakTextInChunks(engine, greeting, "hiyori_startup_greeting")
+                } ?: TextToSpeech.ERROR
+                if (result == TextToSpeech.ERROR) {
+                    isSpeaking = false
+                    status = "起動時の挨拶を読み上げられませんでした。日本語音声の設定を確認してください"
+                } else {
+                    isSpeaking = true
+                    status = "ひよりちゃんが挨拶しています"
+                }
+            }
         }
     }
 
