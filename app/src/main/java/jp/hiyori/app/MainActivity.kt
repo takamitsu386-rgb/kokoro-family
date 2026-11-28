@@ -2508,6 +2508,13 @@ private fun HiyoriApp() {
                     modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
                 )
 
+                Text(
+                    text = "入力中の文章は自動保存されます",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 if (historyLoadError != null) {
                     Text(
                         text = "履歴の読み込みに失敗しました。元データ保護のため送信・編集を停止しています。バックアップ復元または履歴の全削除を選んでください。",
