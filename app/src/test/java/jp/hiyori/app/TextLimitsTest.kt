@@ -127,4 +127,19 @@ class TextLimitsTest {
     @Test
     fun storedHistoryRejectsNegativeLength() {
         assertFalse(isStoredHistoryWithinLimit(-1))
+
+    @Test
+    fun storedHistoryAcceptsExactLimit() {
+        assertTrue(isStoredHistoryWithinLimit(MAX_STORED_HISTORY_CHARS))
     }
+
+    @Test
+    fun storedHistoryRejectsValuesAboveLimit() {
+        assertFalse(isStoredHistoryWithinLimit(MAX_STORED_HISTORY_CHARS + 1))
+    }
+
+    @Test
+    fun storedHistoryRejectsNegativeLength() {
+        assertFalse(isStoredHistoryWithinLimit(-1))
+    }
+}
