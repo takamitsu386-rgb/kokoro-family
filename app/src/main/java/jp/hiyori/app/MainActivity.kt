@@ -1108,7 +1108,7 @@ private fun HiyoriApp() {
             try {
                 val settings = CharacterSettings(
                     truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" },
-                    userCallName.trim().take(20), speakingStyle, responseLength,
+                    truncateAtUtf16Boundary(userCallName.trim(), 20), speakingStyle, responseLength,
                     truncateAtUtf16Boundary(characterNotes, 500), truncateAtUtf16Boundary(voicePreviewText, 100)
                 )
                 context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)
