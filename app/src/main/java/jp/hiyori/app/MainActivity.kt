@@ -951,6 +951,7 @@ private fun HiyoriApp() {
     var isSpeaking by remember { mutableStateOf(false) }
     var isListening by remember { mutableStateOf(false) }
     var discardNextSpeechResult by remember { mutableStateOf(false) }
+    var suppressNextReplySpeech by remember { mutableStateOf(false) }
 
     LaunchedEffect(speakReplies) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -1109,7 +1110,7 @@ private fun HiyoriApp() {
                                                         val reply = ChatMessage(nextId++.toInt(), response, false)
                                                         messages.add(reply)
                                                         saveMessages(context, messages)
-                                                        if (ttsReady && speakReplies) {
+                                                        if (ttsReady && speakReplies && !suppressNextReplySpeech) {
                                                             val speechText = prepareSpeechText(response)
                                                                 .ifBlank { "返事を画面に表示しました。内容を確認してください。" }
                                                             val speechResult = ttsEngine?.let { engine ->
@@ -1124,6 +1125,7 @@ private fun HiyoriApp() {
                                                                 status = if (responseWasTruncated) "返事が届きました（長文のため末尾を省略しました）" else "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}から返事が届きました"
                                                             }
                                                         } else {
+                                                            if (suppressNextReplySpeech) suppressNextReplySpeech = false
                                                             status = if (speakReplies && !ttsReady) {
                                                                 continuousVoice = false
                                                                 shouldListenAgain = false
@@ -2297,6 +2299,7 @@ private fun HiyoriApp() {
                     OutlinedButton(
                         onClick = {
                             if (continuousVoice) {
+                                if (isGenerating) suppressNextReplySpeech = true
                                 if (isListening) discardNextSpeechResult = true
                                 continuousVoice = false
                                 shouldListenAgain = false
