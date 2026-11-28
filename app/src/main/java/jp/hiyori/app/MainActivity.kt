@@ -628,7 +628,7 @@ private fun HiyoriApp() {
     var draft by remember(context) {
         mutableStateOf(
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getString(DRAFT_KEY, "").orEmpty()
+                .getString(DRAFT_KEY, "").orEmpty().take(20000)
         )
     }
 
