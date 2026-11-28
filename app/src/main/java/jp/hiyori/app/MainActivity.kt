@@ -1235,6 +1235,7 @@ private fun HiyoriApp() {
                 val safeCombinedText = truncateAtUtf16Boundary(combinedText, MAX_MESSAGE_CHARS)
                 val voiceTextWasTruncated = safeCombinedText.length < combinedText.length
                 draft = safeCombinedText
+                draftWasRestored = false
                 if (continuousVoice || autoSendVoice) {
                     status = if (voiceTextWasTruncated) {
                         "音声入力が20,000文字を超えたため、末尾を省略して送信します"
