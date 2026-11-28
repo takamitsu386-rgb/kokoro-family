@@ -1933,9 +1933,9 @@ private fun HiyoriApp() {
                     ) {
                         Text(
                             "読み上げ速度：" + when {
-                                speechRate < 0.9f -> "ゆっくり"
-                                speechRate < 1.1f -> "ふつう"
-                                else -> "速め"
+                                speechRate < 0.9f -> "ゆっくり（0.8倍）"
+                                speechRate < 1.1f -> "ふつう（1.0倍）"
+                                else -> "速め（1.2倍）"
                             }
                         )
                     }
