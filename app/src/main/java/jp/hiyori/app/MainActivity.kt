@@ -1219,6 +1219,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                     runCatching {
                         isSpeaking = true
                         speakWithSupertonic(greeting)
+                        isSpeaking = false
                         TextToSpeech.SUCCESS
                     }.getOrDefault(TextToSpeech.ERROR)
                 } else {
@@ -1230,7 +1231,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                     isSpeaking = false
                     status = "起動時の挨拶を読み上げられませんでした。日本語音声の設定を確認してください"
                 } else {
-                    isSpeaking = true
+                    isSpeaking = !supertonicReady
                     status = "ひよりちゃんが挨拶しています"
                 }
             }
@@ -1294,6 +1295,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                                                                 runCatching {
                                                                     isSpeaking = true
                                                                     speakWithSupertonic(speechText)
+                                                                    isSpeaking = false
                                                                     TextToSpeech.SUCCESS
                                                                 }.getOrDefault(TextToSpeech.ERROR)
                                                             } else {
@@ -2002,7 +2004,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                                 }
                             }
                         },
-                        enabled = ttsReady && !continuousVoice && !isGenerating && !isListening && !isSpeaking
+                        enabled = (ttsReady || supertonicReady) && !continuousVoice && !isGenerating && !isListening && !isSpeaking
                     ) { Text("声を試す") }
                     OutlinedButton(
                         onClick = {
@@ -2024,7 +2026,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                             isSpeaking = false
                             status = "読み上げと連続会話を停止しました"
                         },
-                        enabled = ttsReady
+                        enabled = ttsReady || supertonicReady
                     ) { Text("読み上げ停止") }
                     OutlinedButton(
                         onClick = {
@@ -2820,13 +2822,6 @@ private fun HiyoriApp() {    val context = LocalContext.current
                                                             status = "この返事を読み上げています"
                                                         }
                                                     }
-                                                }
-                                                if (speechResult == TextToSpeech.ERROR) {
-                                                    isSpeaking = false
-                                                    status = "この返事を読み上げられませんでした。日本語音声の設定を確認してください"
-                                                } else {
-                                                    isSpeaking = true
-                                                    status = "この返事を読み上げています"
                                                 }
                                             },
                                             enabled = (ttsReady || supertonicReady) && !continuousVoice,
