@@ -1988,7 +1988,8 @@ private fun HiyoriApp() {
                         Text(if (showHistoryTools) "履歴検索・絞り込みを閉じる" else "履歴を検索・絞り込む（${filteredMessages.size} / ${messages.size}件）")
                     }
                     if (showHistoryTools) {
-                       value = historyQuery,
+                        OutlinedTextField(
+                            value = historyQuery,
                         onValueChange = { historyQuery = it },
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                         placeholder = { Text("会話履歴を検索") },
