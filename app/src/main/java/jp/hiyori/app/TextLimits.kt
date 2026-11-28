@@ -20,3 +20,8 @@ internal fun limitGeneratedResponse(text: String): Pair<String, Boolean> {
     return truncateAtUtf16Boundary(text, contentLimit).trimEnd() +
         RESPONSE_TRUNCATION_NOTICE to true
 }
+
+internal const val MAX_STORED_HISTORY_CHARS = 5_000_000
+
+internal fun isStoredHistoryWithinLimit(serializedLength: Int): Boolean =
+    serializedLength in 0..MAX_STORED_HISTORY_CHARS
