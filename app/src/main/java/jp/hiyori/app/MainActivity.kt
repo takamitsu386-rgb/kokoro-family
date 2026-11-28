@@ -1159,8 +1159,8 @@ private fun HiyoriApp() {
         
                                                 if (featureStatus != FeatureStatus.AVAILABLE) {
                                                     status = when (featureStatus) {
-                                                        FeatureStatus.DOWNLOADING -> "端末内AIは準備中です。少し待ってから再送信してください"
-                                                        else -> "端末内AIを利用できません。AICoreの更新・モデルの準備状態を確認してください"
+                                                        FeatureStatus.DOWNLOADING -> "端末内AIは準備中です。送信した文章は履歴に保存されています。準備完了後、最後の文章を再送信してください"
+                                                        else -> "端末内AIを利用できません。送信した文章は履歴に保存されています。AICoreの更新・モデルの準備状態を確認して再送信してください"
                                                     }
                                                     continuousVoice = false
                                                     shouldListenAgain = false
@@ -1209,7 +1209,7 @@ private fun HiyoriApp() {
                                                 // 画面破棄などによるキャンセルは通常エラーに変換せず、呼び出し元へ伝える。
                                                 throw error
                                             } catch (error: Exception) {
-                                                status = "AI応答エラー: ${error.localizedMessage ?: "時間をおいて再試行してください"}"
+                                                status = "AI応答エラー: ${error.localizedMessage ?: "時間をおいて再試行してください"}。送信した文章は履歴に保存されています。復旧後に最後の文章を再送信できます"
                                                 continuousVoice = false
                                                 shouldListenAgain = false
                                             } finally {
