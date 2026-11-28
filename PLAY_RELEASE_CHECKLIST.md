@@ -76,3 +76,7 @@
 - build #500の実行結果: https://github.com/takamitsu386-rgb/kokoro-family/actions/runs/46126003857
 - build #500のdebug APK artifact ID: `15255971478`（SHA-256: `dec9509bcb97dee0cae71323fb30b88c1131b0f6dd0a9d2e15bd5c708e9b666c`）
 - build #500の未署名AAB artifact ID: `15255627705`（SHA-256: `836317c1b505be63d71ddcef106b0b2ab6924cafa70c66a83a96dc1d37638420`）
+- 2026-11-28のAndroid build #501（commit `127189e3f606c339749398ed471426ec59d806fe`）もlint・ユニットテスト・debug APK・未署名AABの全工程が成功
+- build #501の実行結果: https://github.com/takamitsu386-rgb/kokoro-family/actions/runs/46126407702
+- build #501のdebug APK artifact ID: `15255822399`（SHA-256: `4f6441081329c556c6d67d4ed821739699879205bbc790fd84c9ce06e9393917`）
+- build #501の未署名AAB artifact ID: `15255917273`（SHA-256: `552b3892d2b5f5e0aa1457bb90d74865a5b3d510942617ae591e280a32ff0b5d`）
