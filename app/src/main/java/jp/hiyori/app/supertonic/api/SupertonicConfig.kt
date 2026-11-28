@@ -3,7 +3,7 @@ package jp.hiyori.app.supertonic.api
 /**
  * Engine configuration.
  *
- * @param storageDir Directory for storing ONNX models (~265MB).
+ * @param storageDir Directory for storing ONNX models (~400MB).
  * Android: context.filesDir.path + "/supertonic"
  * iOS: NSDocumentDirectory + "/supertonic"
  * @param inferenceSteps Number of denoising steps.
@@ -21,14 +21,14 @@ package jp.hiyori.app.supertonic.api
 data class SupertonicConfig(
     val storageDir: String,
     val inferenceSteps: Int = 8,
-    val defaultLang: String = "ru",
+    val defaultLang: String = "ja",
     val defaultVoice: SupertonicVoice = SupertonicVoice.M1,
     val defaultSpeed: Float = 1.0f,
     val huggingFaceBaseUrl: String = DEFAULT_HF_URL,
 ) {
     companion object {
         const val DEFAULT_HF_URL =
-            "https://huggingface.co/Supertone/supertonic-3/resolve/main"
+            "https://huggingface.co/supertone-oss-archive/supertonic-3/resolve/aafc6e32416a594460b32413efc49d7fe4ce6d46"
 
         /** List of model files to download. */
         val MODEL_FILES = listOf(
@@ -37,10 +37,15 @@ data class SupertonicConfig(
             "onnx/vocoder.onnx",
             "onnx/tts.json",
             "onnx/unicode_indexer.json",
-            "onnx/duration_predictor.onnx"
+            "onnx/duration_predictor.onnx",
+            "voice_styles/F1.json",
+            "voice_styles/F2.json",
+            "voice_styles/F3.json",
+            "voice_styles/F4.json",
+            "voice_styles/F5.json"
         )
 
         /** Approximate total size of models in bytes (~265MB). */
-        const val APPROX_MODEL_SIZE_BYTES = 265L * 1024 * 1024
+        const val APPROX_MODEL_SIZE_BYTES = 400L * 1024 * 1024
     }
 }
