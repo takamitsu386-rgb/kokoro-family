@@ -23,8 +23,8 @@ android {
         applicationId = "jp.hiyori.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 114
-        versionName = "0.13.65"
+        versionCode = 115
+        versionName = "0.13.66"
     }
 
     compileOptions {
@@ -70,6 +70,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("com.google.mlkit:genai-prompt:1.0.0-beta4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.26.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
 }
