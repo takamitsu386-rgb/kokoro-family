@@ -36,7 +36,25 @@ android {
         jvmTarget = "17"
     }
 
-    buildTypes {\n        getByName("release") {\n            isMinifyEnabled = false\n            if (hasReleaseSigning) {\n                signingConfig = signingConfigs.create("release") {\n                    storeFile = file(releaseStoreFile!!)\n                    storePassword = releaseStorePassword\n                    keyAlias = releaseKeyAlias\n                    keyPassword = releaseKeyPassword\n                }\n            }\n        }\n    }\n\n    buildFeatures {
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    }\n\n    buildFeatures {
         compose = true
         buildConfig = true
     }
