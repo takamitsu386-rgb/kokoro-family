@@ -1066,8 +1066,8 @@ private fun HiyoriApp() {
                 engine?.setSpeechRate(speechRate)
                 japaneseVoices = runCatching {
                     engine?.voices.orEmpty()
-                        .filter { it.locale.language == "ja" && !it.isNetworkConnectionRequired }
-                        .sortedBy { it.name }
+                        .filter { it.locale.language == "ja" }
+                        .sortedWith(compareBy<Voice> { it.isNetworkConnectionRequired }.thenBy { it.name })
                 }.getOrDefault(emptyList())
                 ttsReady = languageResult != TextToSpeech.LANG_MISSING_DATA &&
                     languageResult != TextToSpeech.LANG_NOT_SUPPORTED &&
@@ -1899,7 +1899,7 @@ private fun HiyoriApp() {
                 }
 
                 Text(
-                    "日本語の声（端末に入っている音声）",
+                    "日本語の声（端末の読み上げエンジン）",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                 )
@@ -1923,7 +1923,7 @@ private fun HiyoriApp() {
                             enabled = ttsReady && !isSpeaking && !continuousVoice,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text((if (selectedVoiceName == voice.name) "✓ " else "") + voice.name.replace('_', ' '))
+                            Text((if (selectedVoiceName == voice.name) "✓ " else "") + voice.name.replace('_', ' ') + if (voice.isNetworkConnectionRequired) "（通信が必要）" else "（端末内）")
                         }
                     }
                 }
