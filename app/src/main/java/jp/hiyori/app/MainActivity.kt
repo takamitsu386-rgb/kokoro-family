@@ -1990,6 +1990,12 @@ private fun HiyoriApp() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
                 )
+                Text(
+                    "返答を作るときは、キャラクター設定と直近の会話内容を端末内AIに渡します。AIモデルの初回準備にはネット接続が必要な場合があります。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                )
 
                 OutlinedTextField(
                     value = voicePreviewText,
