@@ -1136,6 +1136,7 @@ private fun HiyoriApp() {
                                         messages.add(userMessage)
                                         persistMessages()
                                         draft = ""
+                                        draftWasRestored = false
                                         isGenerating = true
                                         scope.launch {
                                             try {
@@ -1545,6 +1546,7 @@ private fun HiyoriApp() {
             confirmButton = {
                 TextButton(onClick = {
                     draft = ""
+                    draftWasRestored = false
                     showClearDraftDialog = false
                     status = "入力中の文章を消去しました"
                 }) { Text("消去する") }
