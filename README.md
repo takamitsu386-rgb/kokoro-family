@@ -7,7 +7,7 @@ Pixel 9向けの日本語会話キャラクターアプリ。外部の有料AI A
 ## 開発環境
 - Android Studio
 - JDK 17
-- Android SDK 35
+- Android SDK 36
 
 ## 現在の実装
 - Androidアプリの起動土台
@@ -155,6 +155,13 @@ Gemini NanoはAICoreを通じて端末内で推論するため、会話ごとの
 2. 最新の成功した実行を選ぶ
 3. ページ下部の「Artifacts」から「hiyori-debug-apk」を選んで取得する
 4. ZIPを展開すると debug APK が入っている
+
+## Android 16 / Google Play 対応
+
+- `compileSdk` と `targetSdk` は Android 16（API 36）に設定
+- Android 16を対象にしたときのエッジツーエッジ表示に備え、Compose画面のルートで `safeDrawingPadding()` と `imePadding()` を使用
+- Google Playでは、2026年8月31日以降、新規アプリとアプリ更新の提出にAPI 36以上が必要
+- Android 16での実機テスト、画面端・ジェスチャーナビゲーション・キーボード表示の確認は未実施。提出前に実機で確認が必要
 
 ## 正式リリース（Google Play向けAAB）
 
