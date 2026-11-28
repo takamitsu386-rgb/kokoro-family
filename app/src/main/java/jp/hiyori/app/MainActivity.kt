@@ -1991,14 +1991,19 @@ private fun HiyoriApp() {
                                     if (!message.isUser) {
                                         TextButton(
                                             onClick = {
-                                                isSpeaking = true
-                                                ttsEngine?.speak(
+                                                val speechResult = ttsEngine?.speak(
                                                     message.text,
                                                     TextToSpeech.QUEUE_FLUSH,
                                                     null,
                                                     "hiyori_manual_${message.id}"
-                                                )
-                                                status = "この返事を読み上げています"
+                                                ) ?: TextToSpeech.ERROR
+                                                if (speechResult == TextToSpeech.ERROR) {
+                                                    isSpeaking = false
+                                                    status = "この返事を読み上げられませんでした。日本語音声の設定を確認してください"
+                                                } else {
+                                                    isSpeaking = true
+                                                    status = "この返事を読み上げています"
+                                                }
                                             },
                                             enabled = ttsReady && !continuousVoice,
                                             modifier = Modifier.padding(top = 0.dp)
