@@ -127,4 +127,23 @@ class TextLimitsTest {
     fun storedHistoryRejectsNegativeLength() {
         assertFalse(isStoredHistoryWithinLimit(-1))
     }
+
+    @Test
+    fun takeLastDoesNotStartWithOrphanedLowSurrogate() {
+        val text = "A😀B"
+        assertEquals("😀B", takeLastAtUtf16Boundary(text, 3))
+        assertEquals("B", takeLastAtUtf16Boundary(text, 2))
+    }
+
+    @Test
+    fun takeLastPreservesWholeTextWhenWithinLimit() {
+        val text = "A😀B"
+        assertEquals(text, takeLastAtUtf16Boundary(text, text.length))
+    }
+
+    @Test
+    fun takeLastHandlesZeroAndNegativeLimits() {
+        assertEquals("", takeLastAtUtf16Boundary("A😀B", 0))
+        assertEquals("", takeLastAtUtf16Boundary("A😀B", -1))
+    }
 }
