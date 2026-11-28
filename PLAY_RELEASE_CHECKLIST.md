@@ -72,3 +72,7 @@
 - Pixel 9実機でのインストール・動作確認は未完了（CI成功とは別に実機確認が必要）
 - プライバシーポリシーは確認用ドラフトで、公開用として未確定
 - ストア説明文とスクリーンショット計画はドラフト
+- 2026-11-28のAndroid build #500（commit `d43beba869772038b59d9f230c994fb32cc7f050`）もlint・ユニットテスト・debug APK・未署名AABの全工程が成功
+- build #500の実行結果: https://github.com/takamitsu386-rgb/kokoro-family/actions/runs/46126003857
+- build #500のdebug APK artifact ID: `15255971478`（SHA-256: `dec9509bcb97dee0cae71323fb30b88c1131b0f6dd0a9d2e15bd5c708e9b666c`）
+- build #500の未署名AAB artifact ID: `15255627705`（SHA-256: `836317c1b505be63d71ddcef106b0b2ab6924cafa70c66a83a96dc1d37638420`）
