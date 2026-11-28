@@ -1147,6 +1147,9 @@ private fun HiyoriApp() {
                                                 continuousVoice = false
                                                 shouldListenAgain = false
                                             } finally {
+                                                // 返事生成に失敗した場合や、AI利用不可で終了した場合も
+                                                // 停止操作の読み上げ抑止フラグを次の会話へ持ち越さない。
+                                                suppressNextReplySpeech = false
                                                 isGenerating = false
                                             }
                                         }
