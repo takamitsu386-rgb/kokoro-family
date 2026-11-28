@@ -808,9 +808,22 @@ private fun HiyoriApp() {
         matchesText && matchesSpeaker && matchesPeriod && (!favoritesOnly || message.isFavorite)
     }
 
-    LaunchedEffect(historyQuery, historySpeakerFilter, historyPeriodFilter, favoritesOnly, messages.map { it.id to it.isFavorite }) {
+    // 検索・絞り込み条件を変更したときは、該当する最新の会話を表示する。
+    LaunchedEffect(historyQuery, historySpeakerFilter, historyPeriodFilter, favoritesOnly) {
         searchResultIndex = filteredMessages.lastIndex.coerceAtLeast(0)
         if (filteredMessages.isNotEmpty()) {
+            listState.animateScrollToItem(filteredMessages.lastIndex)
+        }
+    }
+
+    // 新着メッセージでは、もともと末尾付近を見ていた場合だけ自動スクロールする。
+    // 過去の会話を読んでいる途中に、新着で画面位置が奪われるのを防ぐ。
+    LaunchedEffect(messages.lastOrNull()?.id) {
+        val layoutInfo = listState.layoutInfo
+        val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+        val wasNearBottom = layoutInfo.totalItemsCount > 0 &&
+            lastVisibleIndex >= layoutInfo.totalItemsCount - 2
+        if (wasNearBottom && filteredMessages.isNotEmpty()) {
             listState.animateScrollToItem(filteredMessages.lastIndex)
         }
     }
