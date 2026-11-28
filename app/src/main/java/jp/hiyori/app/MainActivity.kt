@@ -767,6 +767,12 @@ private fun HiyoriApp() {
         }
     }
 
+    var draftWasRestored by remember(context) {
+        mutableStateOf(
+            !context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(DRAFT_KEY, "").isNullOrEmpty()
+        )
+    }
     var draft by remember(context) {
         mutableStateOf(
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -2489,7 +2495,10 @@ private fun HiyoriApp() {
                 ) {
                     OutlinedTextField(
                         value = draft,
-                        onValueChange = { draft = truncateAtUtf16Boundary(it, MAX_MESSAGE_CHARS) },
+                        onValueChange = {
+                            draft = truncateAtUtf16Boundary(it, MAX_MESSAGE_CHARS)
+                            draftWasRestored = false
+                        },
                         enabled = historyLoadError == null,
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("メッセージを入力") },
@@ -2532,7 +2541,11 @@ private fun HiyoriApp() {
                 )
 
                 Text(
-                    text = "入力中の文章は自動保存されます",
+                    text = if (draftWasRestored) {
+                        "前回の入力内容を復元しました。編集して続きから入力できます"
+                    } else {
+                        "入力中の文章は自動保存されます"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth()
