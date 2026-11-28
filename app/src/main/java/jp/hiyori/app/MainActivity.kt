@@ -1432,14 +1432,23 @@ private fun HiyoriApp() {
                 ) {
                     OutlinedButton(
                         onClick = {
-                            ttsEngine?.speak(
-                                voicePreviewText.trim().ifBlank { "こんにちは。${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}です。これからよろしくね。" },
+                            val previewText = voicePreviewText.trim().ifBlank {
+                                "こんにちは。${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}です。これからよろしくね。"
+                            }
+                            val previewResult = ttsEngine?.speak(
+                                previewText,
                                 TextToSpeech.QUEUE_FLUSH,
                                 null,
                                 "hiyori_voice_preview"
-                            )
+                            ) ?: TextToSpeech.ERROR
+                            if (previewResult == TextToSpeech.ERROR) {
+                                isSpeaking = false
+                                status = "声の試聴を開始できませんでした。日本語音声の設定を確認してください"
+                            } else {
+                                status = "声の試聴を読み上げています"
+                            }
                         },
-                        enabled = ttsReady
+                        enabled = ttsReady && !continuousVoice && !isGenerating && !isListening && !isSpeaking
                     ) { Text("声を試す") }
                     OutlinedButton(
                         onClick = {
