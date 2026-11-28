@@ -697,8 +697,7 @@ private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String
 }
 
 @Composable
-private fun HiyoriApp() {
-    val context = LocalContext.current
+private fun HiyoriApp() {    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var avatarUri by remember(context) {
         mutableStateOf(
@@ -1001,9 +1000,21 @@ private fun HiyoriApp() {
 
     LaunchedEffect(selectedVoiceName, ttsEngine, japaneseVoices) {
         val engine = ttsEngine ?: return@LaunchedEffect
-        if (selectedVoiceName.isNotBlank()) {
-            japaneseVoices.firstOrNull { it.name == selectedVoiceName }?.let { voice ->
-                runCatching { engine.setVoice(voice) }
+        // 保存済みの音声があれば維持し、未選択または端末から消えた場合は
+        // 日本語音声の品質評価・遅延情報を使って利用可能な最良候補を選ぶ。
+        val bestAvailableVoice = japaneseVoices.maxWithOrNull(
+            compareBy<Voice> { it.quality }
+                .thenBy { -it.latency }
+                .thenBy { it.isNetworkConnectionRequired }
+        )
+        val voice = japaneseVoices.firstOrNull { it.name == selectedVoiceName }
+            ?: bestAvailableVoice
+        if (voice != null) {
+            val result = runCatching { engine.setVoice(voice) }
+                .getOrDefault(TextToSpeech.ERROR)
+            if (result == TextToSpeech.SUCCESS && selectedVoiceName != voice.name) {
+                selectedVoiceName = voice.name
+                status = "利用できる日本語音声の中から品質評価が高い声を選びました。「声を試す」で確認できます"
             }
         }
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -1397,8 +1408,7 @@ private fun HiyoriApp() {
                 status = "キャラクター設定をJSON保存しました（${String.format(Locale.JAPAN, "%,d", settingsBytes)}バイト）"
             } catch (error: Exception) {
                 status = "設定の保存に失敗しました: ${error.localizedMessage ?: "不明なエラー"}"
-            }
-        }
+            }        }
     }
 
     val characterSettingsImportLauncher = rememberLauncherForActivityResult(
@@ -2097,8 +2107,7 @@ private fun HiyoriApp() {
                     label = { Text("キャラの性格・設定メモ（任意）") },
                     placeholder = { Text("例：好奇心旺盛で、動物や星の話が好き") },
                     supportingText = { Text(if (characterNotes.length >= 450) "${characterNotes.length}/500字（残り${500-characterNotes.length}字）。次の返答から反映されます" else "${characterNotes.length}/500字。次の返答から反映されます", color = if (characterNotes.length >= 450) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) },
-                    minLines = 1,
-                    maxLines = 3
+                    minLines = 1,                    maxLines = 3
                 )
                 Text(
                     "設定メモにはキャラクターの特徴を書いてね。住所・電話番号・パスワードなどの個人情報は入力しないでください。",
@@ -2797,8 +2806,7 @@ private fun HiyoriApp() {
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)                    ) {
                         OutlinedButton(
                             onClick = { showClearDraftDialog = true },
                             modifier = Modifier.weight(1f),
