@@ -34,4 +34,29 @@ class TextLimitsTest {
     fun negativeLimitReturnsEmptyText() {
         assertEquals("", truncateAtUtf16Boundary("abc", -1))
     }
+
+    @Test
+    fun keepsTextAtExactLimitUnchanged() {
+        val text = "あ".repeat(MAX_MESSAGE_CHARS)
+        val result = limitGeneratedResponse(text)
+        assertEquals(text, result.first)
+        assertFalse(result.second)
+    }
+
+    @Test
+    fun zeroLimitReturnsEmptyText() {
+        assertEquals("", truncateAtUtf16Boundary("abc", 0))
+    }
+
+    @Test
+    fun generatedResponseTruncationDoesNotLeaveHalfSurrogate() {
+        val contentLimit = MAX_MESSAGE_CHARS - RESPONSE_TRUNCATION_NOTICE.length
+        val text = "あ".repeat(contentLimit - 1) + "😀" + "B".repeat(100)
+        val result = limitGeneratedResponse(text)
+
+        assertTrue(result.second)
+        assertTrue(result.first.endsWith(RESPONSE_TRUNCATION_NOTICE))
+        assertTrue(result.first.length <= MAX_MESSAGE_CHARS)
+        assertFalse(result.first.dropLast(RESPONSE_TRUNCATION_NOTICE.length).last().isHighSurrogate())
+    }
 }
