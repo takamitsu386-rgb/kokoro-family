@@ -11,6 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
+import android.speech.tts.Voice
 import android.speech.tts.UtteranceProgressListener
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -990,6 +991,24 @@ private fun HiyoriApp() {
                 .getFloat(SPEECH_RATE_KEY, 1.0f).coerceIn(0.75f, 1.25f)
         )
     }
+    var japaneseVoices by remember { mutableStateOf<List<Voice>>(emptyList()) }
+    var selectedVoiceName by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString("selected_japanese_voice", "") ?: ""
+        )
+    }
+
+    LaunchedEffect(selectedVoiceName, ttsEngine, japaneseVoices) {
+        val engine = ttsEngine ?: return@LaunchedEffect
+        if (selectedVoiceName.isNotBlank()) {
+            japaneseVoices.firstOrNull { it.name == selectedVoiceName }?.let { voice ->
+                runCatching { engine.setVoice(voice) }
+            }
+        }
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString("selected_japanese_voice", selectedVoiceName).apply()
+    }
 
     LaunchedEffect(speechRate, ttsEngine) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -1045,6 +1064,11 @@ private fun HiyoriApp() {
             if (result == TextToSpeech.SUCCESS) {
                 val languageResult = engine?.setLanguage(Locale.JAPAN)
                 engine?.setSpeechRate(speechRate)
+                japaneseVoices = runCatching {
+                    engine?.voices.orEmpty()
+                        .filter { it.locale.language == "ja" && !it.isNetworkConnectionRequired }
+                        .sortedBy { it.name }
+                }.getOrDefault(emptyList())
                 ttsReady = languageResult != TextToSpeech.LANG_MISSING_DATA &&
                     languageResult != TextToSpeech.LANG_NOT_SUPPORTED &&
                     languageResult != null
@@ -1872,6 +1896,36 @@ private fun HiyoriApp() {
                         },
                         enabled = !isGenerating
                     ) { Text("AI状態確認") }
+                }
+
+                Text(
+                    "日本語の声（端末に入っている音声）",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                )
+                if (japaneseVoices.isEmpty()) {
+                    Text(
+                        "選べる日本語音声がありません。Androidの「声の設定」で音声を追加できる場合があります。",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                } else {
+                    japaneseVoices.forEach { voice ->
+                        OutlinedButton(
+                            onClick = {
+                                selectedVoiceName = voice.name
+                                val result = runCatching { ttsEngine?.setVoice(voice) }.getOrNull()
+                                status = if (result == TextToSpeech.SUCCESS) {
+                                    "声を切り替えました。「声を試す」で確認してください"
+                                } else {
+                                    "この音声に切り替えられませんでした"
+                                }
+                            },
+                            enabled = ttsReady && !isSpeaking && !continuousVoice,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text((if (selectedVoiceName == voice.name) "✓ " else "") + voice.name.replace('_', ' '))
+                        }
+                    }
                 }
 
                 Row(
