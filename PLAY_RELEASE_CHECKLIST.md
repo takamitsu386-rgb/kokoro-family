@@ -65,6 +65,8 @@
 - 現在のバージョンは `0.13.65`（versionCode 114）
 - GitHub Actionsでdebug APKと未署名Release AABを作成する構成
 - 署名付きRelease AAB用の専用ワークフローを用意
-- Pixel 9実機での動作確認は未完了
+- 2026-11-28のAndroid build #497（commit `36f711b8c34895d0c55a93b5ef9ffadc156fb88d`）はlint・ユニットテスト・debug APK・未署名AABの全工程が成功
+- build #497のdebug APK artifact ID: `15254325523`、未署名AAB artifact ID: `15254082843`
+- Pixel 9実機でのインストール・動作確認は未完了（CI成功とは別に実機確認が必要）
 - プライバシーポリシーは確認用ドラフトで、公開用として未確定
 - ストア説明文とスクリーンショット計画はドラフト
