@@ -1984,6 +1984,12 @@ private fun HiyoriApp() {
                     minLines = 1,
                     maxLines = 3
                 )
+                Text(
+                    "設定メモにはキャラクターの特徴を書いてね。住所・電話番号・パスワードなどの個人情報は入力しないでください。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                )
 
                 OutlinedTextField(
                     value = voicePreviewText,
