@@ -316,9 +316,11 @@ private const val DRAFT_KEY = "draft_message"
 private const val THEME_MODE_KEY = "theme_mode"
 private const val AVATAR_URI_KEY = "avatar_image_uri"
 
-private fun loadMessages(context: Context): List<ChatMessage> {
+private data class MessageLoadResult(val messages: List<ChatMessage>, val error: String? = null)
+
+private fun loadMessages(context: Context): MessageLoadResult {
     val saved = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        .getString(MESSAGES_KEY, null) ?: return emptyList()
+        .getString(MESSAGES_KEY, null) ?: return MessageLoadResult(emptyList())
     return try {
         require(saved.length <= 5_000_000) { "保存済み会話データが大きすぎます" }
         val json = JSONArray(saved)
@@ -361,10 +363,10 @@ private fun loadMessages(context: Context): List<ChatMessage> {
                 )
             )
         }
-        restored
-    } catch (_: Exception) {
+        MessageLoadResult(restored)
+    } catch (e: Exception) {
         // 読み込みに失敗しても、元のSharedPreferencesデータは削除・上書きしない。
-        emptyList()
+        MessageLoadResult(emptyList(), e.message ?: "保存済み会話データを読み込めませんでした")
     }
 }
 
@@ -739,9 +741,11 @@ private fun HiyoriApp() {
         avatarBitmap = loadedAvatar
         avatarLoadFailed = currentAvatarUri != null && loadedAvatar == null
     }
+    val initialMessageLoad = remember(context) { loadMessages(context) }
     val messages = remember(context) {
-        mutableStateListOf<ChatMessage>().apply { addAll(loadMessages(context)) }
+        mutableStateListOf<ChatMessage>().apply { addAll(initialMessageLoad.messages) }
     }
+    var historyLoadError by remember(context) { mutableStateOf(initialMessageLoad.error) }
     val model = remember { Generation.getClient() }
     val listState = rememberLazyListState()
 
@@ -802,7 +806,20 @@ private fun HiyoriApp() {
     }
 
     var nextId by remember { mutableStateOf((messages.maxOfOrNull { it.id }?.toLong() ?: -1L) + 1L) }
-    var status by remember { mutableStateOf("端末内AIの準備状態を確認できます") }
+    var status by remember {
+        mutableStateOf(
+            historyLoadError?.let {
+                "会話履歴を読み込めませんでした（$it）。元データ保護のため保存を停止中です。バックアップ復元または履歴の全削除を選んでください"
+            } ?: "端末内AIの準備状態を確認できます"
+        )
+    }
+    fun persistMessages(allowReplaceAfterLoadError: Boolean = false) {
+        if (historyLoadError != null && !allowReplaceAfterLoadError) {
+            status = "履歴の読み込みに失敗しているため保存を停止しています。バックアップから復元するか、履歴を全削除してください"
+            return
+        }
+        saveMessages(context, messages)
+    }
     var isGenerating by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
     var pendingDeleteMessageId by remember { mutableStateOf<Int?>(null) }
@@ -1064,7 +1081,9 @@ private fun HiyoriApp() {
     }
 
     val sendMessage: (String?) -> Unit = { messageOverride ->
-        
+                                    if (historyLoadError != null) {
+                                        status = "履歴の読み込みに失敗しているため送信できません。バックアップから復元するか、履歴を全削除してください"
+                                    } else {
                                     val text = (messageOverride ?: draft).trim()
                                     if (text.length > 20000) {
                                         status = "メッセージは20,000文字以内にしてください"
@@ -1075,7 +1094,7 @@ private fun HiyoriApp() {
                                     } else if (text.isNotEmpty() && !isGenerating) {
                                         val userMessage = ChatMessage(nextId++.toInt(), text, true)
                                         messages.add(userMessage)
-                                        saveMessages(context, messages)
+                                        persistMessages()
                                         draft = ""
                                         isGenerating = true
                                         scope.launch {
@@ -1109,7 +1128,7 @@ private fun HiyoriApp() {
                                                     if (response.isNotBlank()) {
                                                         val reply = ChatMessage(nextId++.toInt(), response, false)
                                                         messages.add(reply)
-                                                        saveMessages(context, messages)
+                                                        persistMessages()
                                                         if (ttsReady && speakReplies && !suppressNextReplySpeech) {
                                                             val speechText = prepareSpeechText(response)
                                                                 .ifBlank { "返事を画面に表示しました。内容を確認してください。" }
@@ -1153,6 +1172,7 @@ private fun HiyoriApp() {
                                                 isGenerating = false
                                             }
                                         }
+                                    }
                                     }
     }
 
@@ -1422,7 +1442,8 @@ private fun HiyoriApp() {
                     val restored = pendingRestore.orEmpty()
                     messages.clear()
                     messages.addAll(restored)
-                    saveMessages(context, messages)
+                    historyLoadError = null
+                    persistMessages(allowReplaceAfterLoadError = true)
                     nextId = (messages.maxOfOrNull { it.id }?.toLong() ?: -1L) + 1L
                     historyQuery = ""
                     historySpeakerFilter = "すべて"
@@ -1453,7 +1474,7 @@ private fun HiyoriApp() {
                         isSpeaking = false
                         ttsEngine?.stop()
                         messages.removeAll { it.id == targetId }
-                        saveMessages(context, messages)
+                        persistMessages()
                         status = "メッセージを削除しました"
                     }
                     pendingDeleteMessageId = null
@@ -1478,7 +1499,8 @@ private fun HiyoriApp() {
                     isSpeaking = false
                     ttsEngine?.stop()
                     messages.clear()
-                    saveMessages(context, messages)
+                    historyLoadError = null
+                    persistMessages(allowReplaceAfterLoadError = true)
                     nextId = 0L
                     historyQuery = ""
                     historySpeakerFilter = "すべて"
@@ -2151,7 +2173,7 @@ private fun HiyoriApp() {
                                             val favoriteIndex = messages.indexOfFirst { it.id == message.id }
                                             if (favoriteIndex >= 0) {
                                                 messages[favoriteIndex] = messages[favoriteIndex].copy(isFavorite = !message.isFavorite)
-                                                saveMessages(context, messages)
+                                                persistMessages()
                                                 status = if (!message.isFavorite) "お気に入りに保存しました" else "お気に入りを解除しました"
                                             }
                                         },
@@ -2163,7 +2185,7 @@ private fun HiyoriApp() {
                                                 // 最後の未返信メッセージのIDを再利用し、ID上限付近でも安全に再試行できるようにします。
                                                 nextId = message.id.toLong()
                                                 messages.removeAll { it.id == message.id }
-                                                saveMessages(context, messages)
+                                                persistMessages()
                                                 sendMessage(message.text)
                                             },
                                             enabled = !isGenerating && !continuousVoice,
