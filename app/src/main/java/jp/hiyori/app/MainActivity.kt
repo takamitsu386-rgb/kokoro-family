@@ -208,7 +208,7 @@ private fun splitSpeechText(text: String): List<String> {
     val sentenceBreaks = charArrayOf('。', '！', '？', '!', '?', '、', '，', ',', ' ')
 
     while (remaining.length > maxLength) {
-        val separatorIndex = remaining.lastIndexOfAny(sentenceBreaks, maxLength)
+        val separatorIndex = remaining.lastIndexOfAny(sentenceBreaks, maxLength - 1)
         var cut = if (separatorIndex >= maxLength * 2 / 3) {
             separatorIndex + 1
         } else {
