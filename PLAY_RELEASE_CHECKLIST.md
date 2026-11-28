@@ -449,3 +449,16 @@
 - 未署名Release AAB artifact SHA-256: `fe053d2df369766974513521d28e92920d0c09a0f032e230ce8a29897afff93d`
 - artifact期限: 2027-02-26 12:16 UTC
 - 注意: この記録はCIでのビルド成功を示すだけで、Pixel 9などの実機音声動作や署名付きAABの確認を示さない。
+
+
+### 最新CI記録：音声・連続会話の実機確認項目追記後の再検証（2026-11-28）
+
+- commit: `9d73f62c1674f8d206e098191291afdf07e3afc6`
+- 実行結果: https://github.com/takamitsu386-rgb/kokoro-family/actions/runs/46144308228
+- 結果: lint、ユニットテスト、debug APK生成・アップロード、未署名Release AAB生成・アップロードがすべて成功。GitHub Actions全体もsuccess。
+- debug APK artifact ID: `15263340741`（12,192,678 bytes）
+- debug APK artifact archive SHA-256: `b30ae0e6b6531e628533c47682e56470992dbaf7f3b24cc3d3440eeda5435f1c`
+- 未署名Release AAB artifact ID: `15263630088`（8,592,716 bytes）
+- 未署名Release AAB artifact archive SHA-256: `0193b778c53505ea9f69ce11666a70b6c53f0ff63ed22b25133527929831453e`
+- artifact期限: 2027-02-26 12:22 UTC
+- 注意: CI成功は署名付きAABやPixel 9などの実機動作確認を意味しない。実機テスト項目は未確認のまま維持する。
