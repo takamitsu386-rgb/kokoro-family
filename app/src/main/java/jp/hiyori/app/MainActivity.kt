@@ -861,6 +861,7 @@ private fun HiyoriApp() {
     var showClearDialog by remember { mutableStateOf(false) }
     var showClearDraftDialog by remember { mutableStateOf(false) }
     var showResetCharacterSettingsDialog by remember { mutableStateOf(false) }
+    var showClearAvatarDialog by remember { mutableStateOf(false) }
     var showAdvancedSettings by remember { mutableStateOf(false) }
     var showHistoryTools by remember { mutableStateOf(false) }
     var pendingDeleteMessageId by remember { mutableStateOf<Int?>(null) }
@@ -1539,6 +1540,39 @@ private fun HiyoriApp() {
         )
     }
 
+    if (showClearAvatarDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearAvatarDialog = false },
+            title = { Text("キャラクター画像を解除しますか？") },
+            text = { Text("登録した画像だけを解除し、画像未設定の表示に戻します。キャラクター名・設定・会話履歴は変更しません。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val previousAvatarUri = avatarUri
+                    avatarUri = null
+                    avatarBitmap = null
+                    avatarLoadFailed = false
+                    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                        .edit().remove(AVATAR_URI_KEY).apply()
+                    if (previousAvatarUri != null) {
+                        try {
+                            context.contentResolver.releasePersistableUriPermission(
+                                Uri.parse(previousAvatarUri),
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            )
+                        } catch (_: SecurityException) {
+                            // 既に失効した権限は無視します。
+                        }
+                    }
+                    showClearAvatarDialog = false
+                    status = "キャラクター画像の登録を解除しました"
+                }) { Text("画像を解除") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearAvatarDialog = false }) { Text("キャンセル") }
+            }
+        )
+    }
+
     if (showResetCharacterSettingsDialog) {
         AlertDialog(
             onDismissRequest = { showResetCharacterSettingsDialog = false },
@@ -1664,22 +1698,7 @@ private fun HiyoriApp() {
                         }
                         if (avatarUri != null) {
                             TextButton(onClick = {
-                                val previousAvatarUri = avatarUri
-                                avatarUri = null
-                                avatarBitmap = null
-                                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                                    .edit().remove(AVATAR_URI_KEY).apply()
-                                if (previousAvatarUri != null) {
-                                    try {
-                                        context.contentResolver.releasePersistableUriPermission(
-                                            Uri.parse(previousAvatarUri),
-                                            Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                        )
-                                    } catch (_: SecurityException) {
-                                        // 既に失効した権限は無視します。
-                                    }
-                                }
-                                status = "キャラクター画像の登録を解除しました"
+                                showClearAvatarDialog = true
                             }) { Text("解除") }
                         }
                     }
