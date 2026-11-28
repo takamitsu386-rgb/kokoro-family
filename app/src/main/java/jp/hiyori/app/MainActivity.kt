@@ -2685,6 +2685,12 @@ private fun HiyoriApp() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth()
                 )
+                Text(
+                    "下書きはこの端末内に保存されます。共有端末では、個人情報や秘密の内容を入力したままにしないでください。",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 if (historyLoadError != null) {
                     Text(
