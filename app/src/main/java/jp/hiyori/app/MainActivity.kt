@@ -1200,7 +1200,7 @@ private fun HiyoriApp() {
                                                             }
                                                         }
                                                     } else {
-                                                        status = "返事を作れませんでした。もう一度送ってください"
+                                                        status = "返事を作れませんでした。文章は履歴に保存されています。最後の文章の「再送信」を押して、もう一度試してください"
                                                         continuousVoice = false
                                                         shouldListenAgain = false
                                                     }
