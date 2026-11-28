@@ -69,6 +69,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("com.google.mlkit:genai-prompt:1.0.0-beta4")
+    implementation("com.google.mlkit:genai-text-to-speech:1.0.0-alpha1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.26.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
