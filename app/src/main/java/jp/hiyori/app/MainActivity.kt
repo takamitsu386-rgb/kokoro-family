@@ -646,7 +646,7 @@ private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String
         var high = message.text.length
         while (low < high) {
             val middle = (low + high + 1) / 2
-            val candidate = message.text.takeLast(middle)
+            val candidate = takeLastAtUtf16Boundary(message.text, middle)
             if (encodedEntry(candidate).length <= availableChars) {
                 low = middle
             } else {
