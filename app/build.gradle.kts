@@ -5,6 +5,17 @@ plugins {
 }
 
 android {
+    val releaseStoreFile = System.getenv("RELEASE_STORE_FILE")
+    val releaseStorePassword = System.getenv("RELEASE_STORE_PASSWORD")
+    val releaseKeyAlias = System.getenv("RELEASE_KEY_ALIAS")
+    val releaseKeyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+    val hasReleaseSigning = listOf(
+        releaseStoreFile,
+        releaseStorePassword,
+        releaseKeyAlias,
+        releaseKeyPassword
+    ).all { !it.isNullOrBlank() }
+
     namespace = "jp.hiyori.app"
     compileSdk = 35
 
@@ -25,7 +36,7 @@ android {
         jvmTarget = "17"
     }
 
-    buildFeatures {
+    buildTypes {\n        getByName("release") {\n            isMinifyEnabled = false\n            if (hasReleaseSigning) {\n                signingConfig = signingConfigs.create("release") {\n                    storeFile = file(releaseStoreFile!!)\n                    storePassword = releaseStorePassword\n                    keyAlias = releaseKeyAlias\n                    keyPassword = releaseKeyPassword\n                }\n            }\n        }\n    }\n\n    buildFeatures {
         compose = true
         buildConfig = true
     }
