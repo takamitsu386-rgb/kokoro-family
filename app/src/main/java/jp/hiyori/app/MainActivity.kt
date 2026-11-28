@@ -71,6 +71,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.AnnotatedString
@@ -1703,11 +1704,18 @@ private fun HiyoriApp() {
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit
                             )
-                        } else {
+                        } else if (avatarLoadFailed) {
                             Text(
-                                if (avatarLoadFailed) "画像を読み込めません\n再登録してください" else "画像\n未設定",
+                                "画像を読み込めません\n再登録してください",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.hiyori_default),
+                                contentDescription = "ひよりちゃん",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
                             )
                         }
                     }
