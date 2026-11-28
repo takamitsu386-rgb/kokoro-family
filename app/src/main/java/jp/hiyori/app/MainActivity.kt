@@ -149,6 +149,20 @@ private fun createCharacterSettingsBackup(settings: CharacterSettings): String {
     return backup
 }
 
+private const val MAX_MESSAGE_CHARS = 20000
+private const val RESPONSE_TRUNCATION_NOTICE = "\n\n（長文のため、文字数上限に合わせて省略しました）"
+
+private fun limitGeneratedResponse(text: String): Pair<String, Boolean> {
+    if (text.length <= MAX_MESSAGE_CHARS) return text to false
+    var end = MAX_MESSAGE_CHARS - RESPONSE_TRUNCATION_NOTICE.length
+    // UTF-16のサロゲートペアを途中で分断しない。
+    if (end > 0 && end < text.length &&
+        Character.isHighSurrogate(text[end - 1]) && Character.isLowSurrogate(text[end])) {
+        end--
+    }
+    return text.substring(0, end).trimEnd() + RESPONSE_TRUNCATION_NOTICE to true
+}
+
 private const val MAX_MESSAGES = 10000
 private const val MAX_BACKUP_BYTES = 5_000_000
 private const val MAX_CHARACTER_SETTINGS_BYTES = 100_000
@@ -931,7 +945,8 @@ private fun HiyoriApp() {
                                                 } else {
                                                     status = "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}が返事を考えています"
                                                     val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle, responseLength, characterNotes, userCallName, characterName.trim().take(20).ifBlank { "ひよりちゃん" })
-                                                    val response = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim().take(20000)
+                                                    val generatedText = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim()
+                                                    val (response, responseWasTruncated) = limitGeneratedResponse(generatedText)
                                                     if (response.isNotBlank()) {
                                                         val reply = ChatMessage(nextId++.toInt(), response, false)
                                                         messages.add(reply)
@@ -949,7 +964,7 @@ private fun HiyoriApp() {
                                                                 shouldListenAgain = false
                                                                 status = "返事は届きましたが、音声の再生に失敗しました"
                                                             } else {
-                                                                status = "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}から返事が届きました"
+                                                                status = if (responseWasTruncated) "返事が届きました（長文のため末尾を省略しました）" else "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}から返事が届きました"
                                                             }
                                                         } else {
                                                             status = "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}から返事が届きました"
