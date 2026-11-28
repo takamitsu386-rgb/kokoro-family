@@ -479,11 +479,20 @@ private fun historyPeriodStartMillis(period: String): Long? {
     val today = java.time.LocalDate.now(java.time.ZoneId.systemDefault())
     val startDate = when (period) {
         "今日" -> today
+        "昨日" -> today.minusDays(1)
         "過去7日間" -> today.minusDays(6)
         "過去30日間" -> today.minusDays(29)
+        "過去90日間" -> today.minusDays(89)
         else -> return null
     }
     return startDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+}
+
+private fun historyPeriodEndMillis(period: String): Long? {
+    if (period != "昨日") return null
+    return java.time.LocalDate.now(java.time.ZoneId.systemDefault())
+        .atStartOfDay(java.time.ZoneId.systemDefault())
+        .toInstant().toEpochMilli()
 }
 
 private fun timestampedExportName(prefix: String, extension: String): String {
@@ -692,6 +701,7 @@ private fun HiyoriApp() {
     val filtersActive = historyQuery.isNotBlank() || historySpeakerFilter != "すべて" ||
         historyPeriodFilter != "すべて" || favoritesOnly
     val periodStartMillis = historyPeriodStartMillis(historyPeriodFilter)
+    val periodEndMillis = historyPeriodEndMillis(historyPeriodFilter)
     val filteredMessages = messages.filter { message ->
         val matchesText = historyQuery.isBlank() ||
             message.text.contains(historyQuery.trim(), ignoreCase = true)
@@ -701,7 +711,9 @@ private fun HiyoriApp() {
             else -> true
         }
         val matchesPeriod = periodStartMillis == null ||
-            (message.createdAt >= periodStartMillis && message.createdAt <= System.currentTimeMillis())
+            (message.createdAt >= periodStartMillis &&
+                (periodEndMillis == null || message.createdAt < periodEndMillis) &&
+                message.createdAt <= System.currentTimeMillis())
         matchesText && matchesSpeaker && matchesPeriod && (!favoritesOnly || message.isFavorite)
     }
 
@@ -1837,21 +1849,25 @@ private fun HiyoriApp() {
                             }
                         }
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        listOf("すべて", "今日", "過去7日間", "過去30日間").forEach { period ->
-                            if (historyPeriodFilter == period) {
-                                Button(
-                                    onClick = { historyPeriodFilter = period },
-                                    modifier = Modifier.weight(1f)
-                                ) { Text(period, fontSize = 11.sp) }
-                            } else {
-                                OutlinedButton(
-                                    onClick = { historyPeriodFilter = period },
-                                    modifier = Modifier.weight(1f)
-                                ) { Text(period, fontSize = 11.sp) }
+                    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf(listOf("すべて", "今日", "昨日"), listOf("過去7日間", "過去30日間", "過去90日間")).forEach { periods ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                periods.forEach { period ->
+                                    if (historyPeriodFilter == period) {
+                                        Button(
+                                            onClick = { historyPeriodFilter = period },
+                                            modifier = Modifier.weight(1f)
+                                        ) { Text(period, fontSize = 11.sp, maxLines = 1) }
+                                    } else {
+                                        OutlinedButton(
+                                            onClick = { historyPeriodFilter = period },
+                                            modifier = Modifier.weight(1f)
+                                        ) { Text(period, fontSize = 11.sp, maxLines = 1) }
+                                    }
+                                }
                             }
                         }
                     }
