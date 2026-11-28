@@ -200,6 +200,41 @@ private fun prepareSpeechText(text: String): String {
         .trim()
 }
 
+/** Android TTS の1回あたりの入力上限を超えないよう、文の切れ目を優先して分割する。 */
+private fun splitSpeechText(text: String): List<String> {
+    val maxLength = TextToSpeech.getMaxSpeechInputLength().coerceAtLeast(100)
+    val chunks = mutableListOf<String>()
+    var remaining = text.trim()
+    val sentenceBreaks = charArrayOf('。', '！', '？', '!', '?', '、', '，', ',', ' ')
+
+    while (remaining.length > maxLength) {
+        var cut = remaining.lastIndexOfAny(sentenceBreaks, maxLength)
+        if (cut < maxLength * 2 / 3) cut = maxLength
+        if (cut > 0 && cut < remaining.length &&
+            remaining[cut - 1].isHighSurrogate() && remaining[cut].isLowSurrogate()
+        ) cut--
+        if (cut <= 0) cut = maxLength
+        chunks.add(remaining.substring(0, cut).trim())
+        remaining = remaining.substring(cut).trimStart()
+    }
+    if (remaining.isNotBlank()) chunks.add(remaining)
+    return chunks
+}
+
+private fun speakTextInChunks(engine: TextToSpeech, text: String, utteranceId: String): Int {
+    val chunks = splitSpeechText(text)
+    if (chunks.isEmpty()) return TextToSpeech.ERROR
+    chunks.forEachIndexed { index, chunk ->
+        val isLast = index == chunks.lastIndex
+        val id = if (isLast) "${utteranceId}_final" else "${utteranceId}_part_$index"
+        val queueMode = if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
+        if (engine.speak(chunk, queueMode, null, id) == TextToSpeech.ERROR) {
+            return TextToSpeech.ERROR
+        }
+    }
+    return TextToSpeech.SUCCESS
+}
+
 private const val MAX_MESSAGES = 10000
 private const val MAX_BACKUP_BYTES = 5_000_000
 private const val MAX_CHARACTER_SETTINGS_BYTES = 100_000
@@ -977,7 +1012,9 @@ private fun HiyoriApp() {
                 }
             }
             override fun onDone(utteranceId: String?) {
-                if (utteranceId?.startsWith("hiyori_") == true) {
+                if (utteranceId?.startsWith("hiyori_") == true &&
+                    (utteranceId.endsWith("_final") || !utteranceId.contains("_part_"))
+                ) {
                     mainHandler.post {
                         isSpeaking = false
                         if (latestContinuousVoice) shouldListenAgain = true
@@ -1056,12 +1093,9 @@ private fun HiyoriApp() {
                                                         if (ttsReady && speakReplies) {
                                                             val speechText = prepareSpeechText(response)
                                                                 .ifBlank { "返事を画面に表示しました。内容を確認してください。" }
-                                                            val speechResult = ttsEngine?.speak(
-                                                                speechText,
-                                                                TextToSpeech.QUEUE_FLUSH,
-                                                                null,
-                                                                "hiyori_reply_${reply.id}"
-                                                            ) ?: TextToSpeech.ERROR
+                                                            val speechResult = ttsEngine?.let { engine ->
+                                                                speakTextInChunks(engine, speechText, "hiyori_reply_${reply.id}")
+                                                            } ?: TextToSpeech.ERROR
                                                             if (speechResult == TextToSpeech.ERROR) {
                                                                 isSpeaking = false
                                                                 continuousVoice = false
@@ -2164,12 +2198,9 @@ private fun HiyoriApp() {
                                             onClick = {
                                                 val speechText = prepareSpeechText(message.text)
                                                     .ifBlank { "返事を画面に表示しました。内容を確認してください。" }
-                                                val speechResult = ttsEngine?.speak(
-                                                    speechText,
-                                                    TextToSpeech.QUEUE_FLUSH,
-                                                    null,
-                                                    "hiyori_manual_${message.id}"
-                                                ) ?: TextToSpeech.ERROR
+                                                val speechResult = ttsEngine?.let { engine ->
+                                                    speakTextInChunks(engine, speechText, "hiyori_manual_${message.id}")
+                                                } ?: TextToSpeech.ERROR
                                                 if (speechResult == TextToSpeech.ERROR) {
                                                     isSpeaking = false
                                                     status = "この返事を読み上げられませんでした。日本語音声の設定を確認してください"
