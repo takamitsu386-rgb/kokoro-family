@@ -2532,7 +2532,15 @@ private fun HiyoriApp() {
                 }
 
                 Text(
-                    text = "${draft.length}/20000文字",
+                    text = if (draft.length >= MAX_MESSAGE_CHARS * 9 / 10) {
+                        if (draft.length == MAX_MESSAGE_CHARS) {
+                            "${draft.length}/20000文字（上限です）"
+                        } else {
+                            "${draft.length}/20000文字（残り${MAX_MESSAGE_CHARS - draft.length}文字）"
+                        }
+                    } else {
+                        "${draft.length}/20000文字"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = if (draft.length >= MAX_MESSAGE_CHARS * 9 / 10) {
                         MaterialTheme.colorScheme.error
