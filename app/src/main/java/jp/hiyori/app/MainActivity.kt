@@ -92,6 +92,8 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
+import jp.hiyori.app.speech.GoogleGenAiSpeech
+import com.google.mlkit.genai.texttospeech.VoiceInfo
 import jp.hiyori.app.supertonic.api.DownloadState
 import jp.hiyori.app.supertonic.api.GenerateResult
 import jp.hiyori.app.supertonic.api.SupertonicConfig
@@ -880,6 +882,36 @@ private fun HiyoriApp() {    val context = LocalContext.current
     }
     val supertonicAudioPlayer = remember { SupertonicAudioPlayer() }
     var supertonicReady by remember { mutableStateOf(supertonicTts.isDownloaded()) }
+    val googleGenAiSpeech = remember { GoogleGenAiSpeech() }
+    var googleFemaleVoice by remember { mutableStateOf<VoiceInfo?>(null) }
+    var googleGenAiReady by remember { mutableStateOf(false) }
+    var googleGenAiDownloading by remember { mutableStateOf(false) }
+    var googleGenAiStatus by remember { mutableStateOf("Pixelの対応状況を確認しています…") }
+    LaunchedEffect(Unit) {
+        runCatching {
+            val voices = googleGenAiSpeech.femaleVoices()
+            val preferred = voices.firstOrNull { it.name == "star12" } ?: voices.firstOrNull()
+            googleFemaleVoice = preferred
+            if (preferred == null) {
+                googleGenAiStatus = "この端末ではGoogle生成AI音声を利用できません。音声アプリの更新を確認してください。"
+            } else {
+                when (googleGenAiSpeech.status(preferred)) {
+                    FeatureStatus.AVAILABLE -> {
+                        googleGenAiReady = true
+                        googleGenAiStatus = "Googleの自然な女性音声を利用できます"
+                    }
+                    FeatureStatus.DOWNLOADABLE -> googleGenAiStatus = "自然な女性音声を準備できます"
+                    FeatureStatus.DOWNLOADING -> googleGenAiStatus = "音声モデルをダウンロード中です"
+                    else -> googleGenAiStatus = "Google音声は現在利用できません。音声アプリの更新を確認してください。"
+                }
+            }
+        }.onFailure {
+            googleGenAiStatus = "Google音声の確認に失敗しました。端末の音声アプリを確認してください。"
+        }
+    }
+    DisposableEffect(googleGenAiSpeech) {
+        onDispose { googleGenAiSpeech.close() }
+    }
     var showSupertonicDownloadDialog by remember { mutableStateOf(false) }
     var supertonicDownloading by remember { mutableStateOf(false) }
     var supertonicDownloadProgress by remember { mutableStateOf(0f) }
@@ -902,10 +934,14 @@ private fun HiyoriApp() {    val context = LocalContext.current
     val speakWithSupertonic: suspend (String) -> Unit = { speechText ->
         val chunks = splitSupertonicSpeechText(speechText)
         check(chunks.isNotEmpty()) { "読み上げる文章がありません" }
-        for (chunk in chunks) {
-            when (val generated = supertonicTts.generate(chunk, selectedSupertonicVoice)) {
-                is GenerateResult.Success -> supertonicAudioPlayer.play(generated.wav)
-                is GenerateResult.Error -> throw generated.cause
+        if (googleGenAiReady && googleFemaleVoice != null) {
+            googleGenAiSpeech.speak(speechText, googleFemaleVoice!!)
+        } else {
+            for (chunk in chunks) {
+                when (val generated = supertonicTts.generate(chunk, selectedSupertonicVoice)) {
+                    is GenerateResult.Success -> supertonicAudioPlayer.play(generated.wav)
+                    is GenerateResult.Error -> throw generated.cause
+                }
             }
         }
     }
@@ -1209,13 +1245,13 @@ private fun HiyoriApp() {    val context = LocalContext.current
 
     // 起動時の挨拶は、音声エンジンの準備ができたときに一度だけ再生する。
     // マイクや音声認識は自動で開始しない。
-    LaunchedEffect(ttsReady, supertonicReady, selectedSupertonicVoiceName, speakReplies, ttsEngine) {
-        if ((ttsReady || supertonicReady) && !startupGreetingHandled) {
+    LaunchedEffect(ttsReady, supertonicReady, googleGenAiReady, googleFemaleVoice, selectedSupertonicVoiceName, speakReplies, ttsEngine) {
+        if ((ttsReady || supertonicReady || googleGenAiReady) && !startupGreetingHandled) {
             startupGreetingHandled = true
             if (speakReplies) {
                 val safeCharacterName = truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }
                 val greeting = safeCharacterName + "です。こんにちは。今日は何をお話ししましょうか？"
-                val result = if (supertonicReady) {
+                val result = if (supertonicReady || googleGenAiReady) {
                     runCatching {
                         isSpeaking = true
                         speakWithSupertonic(greeting)
@@ -1231,7 +1267,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                     isSpeaking = false
                     status = "起動時の挨拶を読み上げられませんでした。日本語音声の設定を確認してください"
                 } else {
-                    isSpeaking = !supertonicReady
+                    isSpeaking = !(supertonicReady || googleGenAiReady)
                     status = "ひよりちゃんが挨拶しています"
                 }
             }
@@ -1288,10 +1324,10 @@ private fun HiyoriApp() {    val context = LocalContext.current
                                                         val reply = ChatMessage(nextId++.toInt(), response, false)
                                                         messages.add(reply)
                                                         val replySaved = persistMessages()
-                                                        if ((ttsReady || supertonicReady) && speakReplies && !suppressNextReplySpeech) {
+                                                        if ((ttsReady || supertonicReady || googleGenAiReady) && speakReplies && !suppressNextReplySpeech) {
                                                             val speechText = prepareSpeechText(response)
                                                                 .ifBlank { "返事を画面に表示しました。内容を確認してください。" }
-                                                            val speechResult = if (supertonicReady) {
+                                                            val speechResult = if (supertonicReady || googleGenAiReady) {
                                                                 runCatching {
                                                                     isSpeaking = true
                                                                     speakWithSupertonic(speechText)
@@ -1313,7 +1349,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                                                             }
                                                         } else {
                                                             if (suppressNextReplySpeech) suppressNextReplySpeech = false
-                                                            status = if (speakReplies && !ttsReady && !supertonicReady) {
+                                                            status = if (speakReplies && !ttsReady && !supertonicReady && !googleGenAiReady) {
                                                                 continuousVoice = false
                                                                 shouldListenAgain = false
                                                                 "返事は届きましたが、日本語の読み上げ音声が準備できていません。連続会話を停止しました。Androidのテキスト読み上げ設定を確認してください"
@@ -1981,7 +2017,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                             val previewText = voicePreviewText.trim().ifBlank {
                                 "こんにちは。${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}です。これからよろしくね。"
                             }
-                            if (supertonicReady) {
+                            if (supertonicReady || googleGenAiReady) {
                                 scope.launch {
                                     isSpeaking = true
                                     status = "自然な声を試しています"
@@ -2004,7 +2040,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                                 }
                             }
                         },
-                        enabled = (ttsReady || supertonicReady) && !continuousVoice && !isGenerating && !isListening && !isSpeaking
+                        enabled = (ttsReady || supertonicReady || googleGenAiReady) && !continuousVoice && !isGenerating && !isListening && !isSpeaking
                     ) { Text("声を試す") }
                     OutlinedButton(
                         onClick = {
@@ -2026,7 +2062,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                             isSpeaking = false
                             status = "読み上げと連続会話を停止しました"
                         },
-                        enabled = ttsReady || supertonicReady
+                        enabled = ttsReady || supertonicReady || googleGenAiReady
                     ) { Text("読み上げ停止") }
                     OutlinedButton(
                         onClick = {
@@ -2076,6 +2112,58 @@ private fun HiyoriApp() {    val context = LocalContext.current
                             Text((if (selectedVoiceName == voice.name) "✓ " else "") + voice.name.replace('_', ' ') + if (voice.isNetworkConnectionRequired) "（通信が必要）" else "（端末内）")
                         }
                     }
+                }
+
+                Text(
+                    "Google生成AIの自然な女性音声（Pixel対応）",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 14.dp, bottom = 4.dp)
+                )
+                Text(
+                    googleGenAiStatus,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (!googleGenAiReady && googleFemaleVoice != null) {
+                    OutlinedButton(
+                        onClick = {
+                            val voice = googleFemaleVoice ?: return@OutlinedButton
+                            googleGenAiDownloading = true
+                            googleGenAiStatus = "Googleの音声モデルを準備しています…"
+                            scope.launch {
+                                try {
+                                    googleGenAiSpeech.download(voice).collect { state ->
+                                        when (state) {
+                                            is com.google.mlkit.genai.common.DownloadStatus.DownloadProgress ->
+                                                googleGenAiStatus = "音声モデルをダウンロード中…"
+                                            com.google.mlkit.genai.common.DownloadStatus.DownloadCompleted -> {
+                                                googleGenAiReady = true
+                                                googleGenAiStatus = "Googleの自然な女性音声を準備できました"
+                                            }
+                                            is com.google.mlkit.genai.common.DownloadStatus.DownloadFailed ->
+                                                throw IllegalStateException("音声モデルの準備に失敗しました")
+                                            else -> Unit
+                                        }
+                                    }
+                                    googleGenAiReady = googleGenAiSpeech.status(voice) == FeatureStatus.AVAILABLE
+                                    if (!googleGenAiReady) throw IllegalStateException("音声モデルがまだ利用できません")
+                                } catch (error: Exception) {
+                                    googleGenAiStatus = error.localizedMessage ?: "音声モデルを準備できませんでした"
+                                } finally {
+                                    googleGenAiDownloading = false
+                                }
+                            }
+                        },
+                        enabled = !googleGenAiDownloading && !isSpeaking && !isGenerating,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(if (googleGenAiDownloading) "準備中…" else "Googleの自然な声を準備する") }
+                }
+                if (googleGenAiReady) {
+                    Text(
+                        "返事・最初のあいさつ・試し聞きにGoogleの音声を優先して使います。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
                 Text(
@@ -2804,7 +2892,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                                                 val speechText = prepareSpeechText(message.text)
                                                     .ifBlank { "返事を画面に表示しました。内容を確認してください。" }
                                                 scope.launch {
-                                                    if (supertonicReady) {
+                                                    if (supertonicReady || googleGenAiReady) {
                                                         isSpeaking = true
                                                         status = "自然な声で読み上げています"
                                                         val ok = runCatching { speakWithSupertonic(speechText) }.isSuccess
