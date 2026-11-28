@@ -1636,6 +1636,7 @@ private fun HiyoriApp() {
                     ) { Text("声を試す") }
                     OutlinedButton(
                         onClick = {
+                            if (isGenerating) suppressNextReplySpeech = true
                             if (isListening) discardNextSpeechResult = true
                             ttsEngine?.stop()
                             continuousVoice = false
