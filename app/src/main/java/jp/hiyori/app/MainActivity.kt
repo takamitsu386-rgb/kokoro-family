@@ -860,6 +860,7 @@ private fun HiyoriApp() {
     var isGenerating by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
     var showClearDraftDialog by remember { mutableStateOf(false) }
+    var showResetCharacterSettingsDialog by remember { mutableStateOf(false) }
     var showAdvancedSettings by remember { mutableStateOf(false) }
     var showHistoryTools by remember { mutableStateOf(false) }
     var pendingDeleteMessageId by remember { mutableStateOf<Int?>(null) }
@@ -1538,6 +1539,29 @@ private fun HiyoriApp() {
         )
     }
 
+    if (showResetCharacterSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetCharacterSettingsDialog = false },
+            title = { Text("キャラクター設定を初期値に戻しますか？") },
+            text = { Text("名前・呼び方・話し方・返答の長さ・性格メモ・声の試聴文を初期値に戻します。会話履歴、登録画像、読み上げ速度などの端末設定は変更しません。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    characterName = "ひよりちゃん"
+                    userCallName = ""
+                    speakingStyle = "ふつう"
+                    responseLength = "ふつう"
+                    characterNotes = ""
+                    voicePreviewText = ""
+                    showResetCharacterSettingsDialog = false
+                    status = "キャラクター設定を初期値に戻しました"
+                }) { Text("初期値に戻す") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetCharacterSettingsDialog = false }) { Text("キャンセル") }
+            }
+        )
+    }
+
     if (showClearDraftDialog) {
         AlertDialog(
             onDismissRequest = { showClearDraftDialog = false },
@@ -1969,6 +1993,13 @@ private fun HiyoriApp() {
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                 ) {
                     Text("キャラクター設定をJSONから読み込む")
+                }
+
+                OutlinedButton(
+                    onClick = { showResetCharacterSettingsDialog = true },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    Text("キャラクター設定を初期値に戻す")
                 }
 
                 OutlinedButton(
