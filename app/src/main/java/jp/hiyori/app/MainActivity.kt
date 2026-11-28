@@ -1989,6 +1989,38 @@ private fun HiyoriApp() {
                     maxLines = 2
                 )
 
+                Text(
+                    "設定プレビュー（次の返答から反映）",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
+                )
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" },
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text("あなたの呼び方：${userCallName.ifBlank { "指定なし" }}")
+                        Text("話し方：$speakingStyle ／ 返答の長さ：$responseLength")
+                        Text(
+                            "性格・設定：${characterNotes.ifBlank { "未設定" }}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            "声の試聴文：${voicePreviewText.ifBlank { "標準文を使用" }}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
                 OutlinedButton(
                     onClick = {
                         characterSettingsLauncher.launch(
