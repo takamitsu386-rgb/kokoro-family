@@ -318,7 +318,7 @@ private fun backupChecksum(items: JSONArray): String {
     return digest.joinToString("") { byte -> "%02x".format(byte) }
 }
 
-private fun createBackup(messages: List<ChatMessage>): String {
+private fun createBackup(messages: List<ChatMessage>, enforceSizeLimit: Boolean = true): String {
     val items = JSONArray()
     messages.forEach { message ->
         items.put(
@@ -339,8 +339,10 @@ private fun createBackup(messages: List<ChatMessage>): String {
         .put("checksum", backupChecksum(items))
         .put("messages", items)
         .toString(2)
-    require(backup.toByteArray(Charsets.UTF_8).size <= MAX_BACKUP_BYTES) {
-        "バックアップファイルが大きすぎます。古い会話を整理してから、もう一度保存してください（上限5MB）"
+    if (enforceSizeLimit) {
+        require(backup.toByteArray(Charsets.UTF_8).size <= MAX_BACKUP_BYTES) {
+            "バックアップファイルが大きすぎます。古い会話を整理してから、もう一度保存してください（上限5MB）"
+        }
     }
     return backup
 }
@@ -665,13 +667,15 @@ private fun HiyoriApp() {
     val messagesSnapshot = messages.toList()
     val backupSizeBytes = remember(messagesSnapshot) {
         runCatching {
-            createBackup(messagesSnapshot).toByteArray(Charsets.UTF_8).size
-        }.getOrDefault(MAX_BACKUP_BYTES + 1)
+            createBackup(messagesSnapshot, enforceSizeLimit = false)
+                .toByteArray(Charsets.UTF_8).size
+        }.getOrDefault(-1)
     }
-    val backupSizeSummary = if (backupSizeBytes > MAX_BACKUP_BYTES) {
-        "5MB超過"
+    val backupSizeSummary = if (backupSizeBytes < 0) {
+        "容量を計算できません"
     } else {
-        "${"%.2f".format(Locale.JAPAN, backupSizeBytes / 1_048_576.0)}MB/5MB"
+        "${"%.2f".format(Locale.JAPAN, backupSizeBytes / 1_048_576.0)}MB/5MB" +
+            if (backupSizeBytes > MAX_BACKUP_BYTES) "（上限超過）" else ""
     }
     val filtersActive = historyQuery.isNotBlank() || historySpeakerFilter != "すべて" || favoritesOnly
     val filteredMessages = messages.filter { message ->
