@@ -92,6 +92,12 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
+import jp.hiyori.app.supertonic.api.DownloadState
+import jp.hiyori.app.supertonic.api.GenerateResult
+import jp.hiyori.app.supertonic.api.SupertonicConfig
+import jp.hiyori.app.supertonic.api.SupertonicTts
+import jp.hiyori.app.supertonic.api.SupertonicVoice
+import jp.hiyori.app.supertonic.audio.SupertonicAudioPlayer
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
@@ -861,6 +867,49 @@ private fun HiyoriApp() {    val context = LocalContext.current
     var pendingCharacterSettings by remember { mutableStateOf<CharacterSettings?>(null) }
     var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
     var ttsReady by remember { mutableStateOf(false) }
+    val supertonicTts = remember(context) {
+        SupertonicTts(
+            SupertonicConfig(
+                storageDir = context.filesDir.resolve("supertonic").absolutePath,
+                defaultLang = "ja",
+                defaultVoice = SupertonicVoice.F1,
+                defaultSpeed = 1.0f,
+                inferenceSteps = 8
+            )
+        )
+    }
+    val supertonicAudioPlayer = remember { SupertonicAudioPlayer() }
+    var supertonicReady by remember { mutableStateOf(supertonicTts.isDownloaded()) }
+    var showSupertonicDownloadDialog by remember { mutableStateOf(false) }
+    var supertonicDownloading by remember { mutableStateOf(false) }
+    var supertonicDownloadProgress by remember { mutableStateOf(0f) }
+    var supertonicDownloadLabel by remember { mutableStateOf("") }
+    var selectedSupertonicVoiceName by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString("supertonic_voice", "F1") ?: "F1"
+        )
+    }
+    val selectedSupertonicVoice = runCatching {
+        SupertonicVoice.valueOf(selectedSupertonicVoiceName)
+    }.getOrDefault(SupertonicVoice.F1)
+
+    LaunchedEffect(selectedSupertonicVoiceName) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString("supertonic_voice", selectedSupertonicVoiceName).apply()
+    }
+
+    val speakWithSupertonic: suspend (String) -> Unit = { speechText ->
+        val chunks = splitSupertonicSpeechText(speechText)
+        check(chunks.isNotEmpty()) { "読み上げる文章がありません" }
+        for (chunk in chunks) {
+            when (val generated = supertonicTts.generate(chunk, selectedSupertonicVoice)) {
+                is GenerateResult.Success -> supertonicAudioPlayer.play(generated.wav)
+                is GenerateResult.Error -> throw generated.cause
+            }
+        }
+    }
+
     var startupGreetingHandled by remember { mutableStateOf(false) }
     var autoSendVoice by remember(context) {
         mutableStateOf(
@@ -1045,6 +1094,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                 discardNextSpeechResult = true
             }
             ttsEngine?.stop()
+            supertonicAudioPlayer.stop()
             isSpeaking = false
             continuousVoice = false
             shouldListenAgain = false
@@ -1067,6 +1117,13 @@ private fun HiyoriApp() {    val context = LocalContext.current
 
     DisposableEffect(model) {
         onDispose { model.close() }
+    }
+
+    DisposableEffect(supertonicTts, supertonicAudioPlayer) {
+        onDispose {
+            supertonicAudioPlayer.stop()
+            supertonicTts.close()
+        }
     }
 
     DisposableEffect(context) {
@@ -1152,15 +1209,23 @@ private fun HiyoriApp() {    val context = LocalContext.current
 
     // 起動時の挨拶は、音声エンジンの準備ができたときに一度だけ再生する。
     // マイクや音声認識は自動で開始しない。
-    LaunchedEffect(ttsReady, speakReplies, ttsEngine) {
-        if (ttsReady && !startupGreetingHandled) {
+    LaunchedEffect(ttsReady, supertonicReady, selectedSupertonicVoiceName, speakReplies, ttsEngine) {
+        if ((ttsReady || supertonicReady) && !startupGreetingHandled) {
             startupGreetingHandled = true
             if (speakReplies) {
                 val safeCharacterName = truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }
                 val greeting = safeCharacterName + "です。こんにちは。今日は何をお話ししましょうか？"
-                val result = ttsEngine?.let { engine ->
-                    speakTextInChunks(engine, greeting, "hiyori_startup_greeting")
-                } ?: TextToSpeech.ERROR
+                val result = if (supertonicReady) {
+                    runCatching {
+                        isSpeaking = true
+                        speakWithSupertonic(greeting)
+                        TextToSpeech.SUCCESS
+                    }.getOrDefault(TextToSpeech.ERROR)
+                } else {
+                    ttsEngine?.let { engine ->
+                        speakTextInChunks(engine, greeting, "hiyori_startup_greeting")
+                    } ?: TextToSpeech.ERROR
+                }
                 if (result == TextToSpeech.ERROR) {
                     isSpeaking = false
                     status = "起動時の挨拶を読み上げられませんでした。日本語音声の設定を確認してください"
@@ -1222,12 +1287,20 @@ private fun HiyoriApp() {    val context = LocalContext.current
                                                         val reply = ChatMessage(nextId++.toInt(), response, false)
                                                         messages.add(reply)
                                                         val replySaved = persistMessages()
-                                                        if (ttsReady && speakReplies && !suppressNextReplySpeech) {
+                                                        if ((ttsReady || supertonicReady) && speakReplies && !suppressNextReplySpeech) {
                                                             val speechText = prepareSpeechText(response)
                                                                 .ifBlank { "返事を画面に表示しました。内容を確認してください。" }
-                                                            val speechResult = ttsEngine?.let { engine ->
-                                                                speakTextInChunks(engine, speechText, "hiyori_reply_${reply.id}")
-                                                            } ?: TextToSpeech.ERROR
+                                                            val speechResult = if (supertonicReady) {
+                                                                runCatching {
+                                                                    isSpeaking = true
+                                                                    speakWithSupertonic(speechText)
+                                                                    TextToSpeech.SUCCESS
+                                                                }.getOrDefault(TextToSpeech.ERROR)
+                                                            } else {
+                                                                ttsEngine?.let { engine ->
+                                                                    speakTextInChunks(engine, speechText, "hiyori_reply_${reply.id}")
+                                                                } ?: TextToSpeech.ERROR
+                                                            }
                                                             if (speechResult == TextToSpeech.ERROR) {
                                                                 isSpeaking = false
                                                                 continuousVoice = false
@@ -1238,7 +1311,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                                                             }
                                                         } else {
                                                             if (suppressNextReplySpeech) suppressNextReplySpeech = false
-                                                            status = if (speakReplies && !ttsReady) {
+                                                            status = if (speakReplies && !ttsReady && !supertonicReady) {
                                                                 continuousVoice = false
                                                                 shouldListenAgain = false
                                                                 "返事は届きましたが、日本語の読み上げ音声が準備できていません。連続会話を停止しました。Androidのテキスト読み上げ設定を確認してください"
@@ -1570,6 +1643,60 @@ private fun HiyoriApp() {    val context = LocalContext.current
         )
     }
 
+    if (showSupertonicDownloadDialog) {
+        AlertDialog(
+            onDismissRequest = { showSupertonicDownloadDialog = false },
+            title = { Text("自然な声を準備しますか？") },
+            text = {
+                Text("約400MBの音声モデルをダウンロードして端末に保存します。完了後はインターネット接続なしでも女性の声で読み上げできます。通信量を確認してから開始してください。")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSupertonicDownloadDialog = false
+                        supertonicDownloading = true
+                        supertonicDownloadProgress = 0f
+                        supertonicDownloadLabel = "ダウンロードを開始しています…"
+                        scope.launch {
+                            try {
+                                supertonicTts.download().collect { downloadState ->
+                                    when (downloadState) {
+                                        is DownloadState.Downloading -> {
+                                            supertonicDownloadProgress = downloadState.fraction.coerceIn(0f, 1f)
+                                            val done = downloadState.bytesDownloaded / (1024 * 1024)
+                                            val total = downloadState.totalBytes / (1024 * 1024)
+                                            supertonicDownloadLabel = "音声モデルを準備中：${done}MB / ${total}MB（${(supertonicDownloadProgress * 100).toInt()}%）"
+                                        }
+                                        DownloadState.Ready -> {
+                                            supertonicReady = true
+                                            supertonicDownloadProgress = 1f
+                                            supertonicDownloadLabel = "準備ができました"
+                                            status = "自然な声の準備ができました。女性の声を選んでください"
+                                        }
+                                        is DownloadState.Error -> throw downloadState.cause
+                                        DownloadState.NotDownloaded -> Unit
+                                    }
+                                }
+                                if (!supertonicTts.isDownloaded()) {
+                                    throw IllegalStateException("ダウンロードが完了しませんでした")
+                                }
+                                supertonicReady = true
+                            } catch (error: Exception) {
+                                status = "音声モデルを準備できませんでした：${error.localizedMessage ?: "通信状態を確認してください"}"
+                                supertonicDownloadLabel = "準備に失敗しました。もう一度お試しください"
+                            } finally {
+                                supertonicDownloading = false
+                            }
+                        }
+                    }
+                ) { Text("ダウンロード開始") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSupertonicDownloadDialog = false }) { Text("あとで") }
+            }
+        )
+    }
+
     if (pendingDeleteMessageId != null) {
         AlertDialog(
             onDismissRequest = { pendingDeleteMessageId = null },
@@ -1852,17 +1979,27 @@ private fun HiyoriApp() {    val context = LocalContext.current
                             val previewText = voicePreviewText.trim().ifBlank {
                                 "こんにちは。${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}です。これからよろしくね。"
                             }
-                            val previewResult = ttsEngine?.speak(
-                                previewText,
-                                TextToSpeech.QUEUE_FLUSH,
-                                null,
-                                "hiyori_voice_preview"
-                            ) ?: TextToSpeech.ERROR
-                            if (previewResult == TextToSpeech.ERROR) {
-                                isSpeaking = false
-                                status = "声の試聴を開始できませんでした。日本語音声の設定を確認してください"
+                            if (supertonicReady) {
+                                scope.launch {
+                                    isSpeaking = true
+                                    status = "自然な声を試しています"
+                                    val ok = runCatching { speakWithSupertonic(previewText) }.isSuccess
+                                    isSpeaking = false
+                                    status = if (ok) "自然な声の試聴が終わりました" else "自然な声を再生できませんでした"
+                                }
                             } else {
-                                status = "声の試聴を読み上げています"
+                                val previewResult = ttsEngine?.speak(
+                                    previewText,
+                                    TextToSpeech.QUEUE_FLUSH,
+                                    null,
+                                    "hiyori_voice_preview"
+                                ) ?: TextToSpeech.ERROR
+                                if (previewResult == TextToSpeech.ERROR) {
+                                    isSpeaking = false
+                                    status = "声の試聴を開始できませんでした。日本語音声の設定を確認してください"
+                                } else {
+                                    status = "声の試聴を読み上げています"
+                                }
                             }
                         },
                         enabled = ttsReady && !continuousVoice && !isGenerating && !isListening && !isSpeaking
@@ -1881,6 +2018,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                             if (isGenerating) suppressNextReplySpeech = true
                             if (isListening) discardNextSpeechResult = true
                             ttsEngine?.stop()
+                            supertonicAudioPlayer.stop()
                             continuousVoice = false
                             shouldListenAgain = false
                             isSpeaking = false
@@ -1934,6 +2072,51 @@ private fun HiyoriApp() {    val context = LocalContext.current
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text((if (selectedVoiceName == voice.name) "✓ " else "") + voice.name.replace('_', ' ') + if (voice.isNetworkConnectionRequired) "（通信が必要）" else "（端末内）")
+                        }
+                    }
+                }
+
+                Text(
+                    "自然なAI音声（Supertonic 3・端末内）",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 14.dp, bottom = 4.dp)
+                )
+                if (!supertonicReady) {
+                    Text(
+                        "初回のみ約400MBをダウンロードします。Wi-Fi接続での準備がおすすめです。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedButton(
+                        onClick = { showSupertonicDownloadDialog = true },
+                        enabled = !supertonicDownloading && !isGenerating && !isSpeaking,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("自然な声を準備する（約400MB）") }
+                    if (supertonicDownloading) {
+                        Text(
+                            supertonicDownloadLabel.ifBlank { "音声モデルを準備しています…" },
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                } else {
+                    Text(
+                        "端末内に準備できました。女性の声を選べます。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    listOf(
+                        SupertonicVoice.F1, SupertonicVoice.F2, SupertonicVoice.F3,
+                        SupertonicVoice.F4, SupertonicVoice.F5
+                    ).forEach { voice ->
+                        OutlinedButton(
+                            onClick = {
+                                selectedSupertonicVoiceName = voice.id
+                                status = "女性の声 ${voice.id} に切り替えました"
+                            },
+                            enabled = !isSpeaking && !continuousVoice && !isGenerating,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text((if (selectedSupertonicVoice == voice) "✓ " else "") + "女性の声 ${voice.id}")
                         }
                     }
                 }
@@ -2618,9 +2801,26 @@ private fun HiyoriApp() {    val context = LocalContext.current
                                             onClick = {
                                                 val speechText = prepareSpeechText(message.text)
                                                     .ifBlank { "返事を画面に表示しました。内容を確認してください。" }
-                                                val speechResult = ttsEngine?.let { engine ->
-                                                    speakTextInChunks(engine, speechText, "hiyori_manual_${message.id}")
-                                                } ?: TextToSpeech.ERROR
+                                                scope.launch {
+                                                    if (supertonicReady) {
+                                                        isSpeaking = true
+                                                        status = "自然な声で読み上げています"
+                                                        val ok = runCatching { speakWithSupertonic(speechText) }.isSuccess
+                                                        isSpeaking = false
+                                                        status = if (ok) "読み上げが終わりました" else "新しい音声で読み上げられませんでした"
+                                                    } else {
+                                                        val speechResult = ttsEngine?.let { engine ->
+                                                            speakTextInChunks(engine, speechText, "hiyori_manual_${message.id}")
+                                                        } ?: TextToSpeech.ERROR
+                                                        if (speechResult == TextToSpeech.ERROR) {
+                                                            isSpeaking = false
+                                                            status = "この返事を読み上げられませんでした。日本語音声の設定を確認してください"
+                                                        } else {
+                                                            isSpeaking = true
+                                                            status = "この返事を読み上げています"
+                                                        }
+                                                    }
+                                                }
                                                 if (speechResult == TextToSpeech.ERROR) {
                                                     isSpeaking = false
                                                     status = "この返事を読み上げられませんでした。日本語音声の設定を確認してください"
@@ -2629,7 +2829,7 @@ private fun HiyoriApp() {    val context = LocalContext.current
                                                     status = "この返事を読み上げています"
                                                 }
                                             },
-                                            enabled = ttsReady && !continuousVoice,
+                                            enabled = (ttsReady || supertonicReady) && !continuousVoice,
                                             modifier = Modifier.padding(top = 0.dp)
                                         ) {
                                             Text("読み上げ", style = MaterialTheme.typography.labelSmall)
