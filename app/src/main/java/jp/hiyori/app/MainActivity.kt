@@ -2519,6 +2519,11 @@ private fun HiyoriApp() {
                             enabled = !isGenerating
                         ) { Text(if (autoSendVoice) "音声の自動送信ON" else "音声の自動送信OFF") }
                     }
+                    Text(
+                        "自動送信ON：認識した文章をすぐ送信します。OFF：入力欄で確認してから送信できます。連続会話中は自動送信されます。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     OutlinedButton(
                         onClick = {
                             try {
