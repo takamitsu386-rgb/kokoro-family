@@ -1947,6 +1947,12 @@ private fun HiyoriApp() {
                         )
                     }
                 }
+                Text(
+                    "各ボタンを押すたびに設定が順番に切り替わります。話し方・返答の長さは次の返答から、文字サイズは会話表示に反映されます。読み上げ速度は音声再生に反映されます。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
 
                 OutlinedTextField(
                     value = characterName,
