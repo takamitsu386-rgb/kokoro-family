@@ -1328,7 +1328,7 @@ private fun HiyoriApp() {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
             title = { Text("履歴を削除しますか？") },
-            text = { Text("この端末に保存された会話をすべて削除します。バックアップがない場合、元に戻せません。") },
+            text = { Text("この端末の会話履歴 ${messages.size}件（お気に入り ${favoriteCount}件）をすべて削除します。現在のバックアップJSONは約 ${String.format(Locale.JAPAN, \"%,d\", backupSizeBytes)} バイトです。削除後は元に戻せません。必要なら先にバックアップしてください。") },
             confirmButton = {
                 TextButton(onClick = {
                     if (isListening) discardNextSpeechResult = true
