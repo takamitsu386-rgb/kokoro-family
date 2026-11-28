@@ -2311,10 +2311,10 @@ private fun HiyoriApp() {
                             modifier = Modifier.padding(top = 14.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            OutlinedButton(onClick = { draft = "こんにちは！" }) {
+                            OutlinedButton(onClick = { draft = "こんにちは！"; draftWasRestored = false }) {
                                 Text("あいさつする")
                             }
-                            OutlinedButton(onClick = { draft = "今日はどんなことができる？" }) {
+                            OutlinedButton(onClick = { draft = "今日はどんなことができる？"; draftWasRestored = false }) {
                                 Text("できることを聞く")
                             }
                         }
@@ -2413,12 +2413,15 @@ private fun HiyoriApp() {
                                                     messages.add(message)
                                                     nextId = (messages.maxOfOrNull { it.id }?.toLong() ?: -1L) + 1L
                                                     draft = message.text
+                                                    draftWasRestored = false
                                                 } else {
                                                     draft = message.text
+                                                    draftWasRestored = false
                                                     sendMessage(message.text)
                                                     if (draft.isBlank()) {
                                                         // 送信登録に成功した場合だけ、元の下書きを戻します。
                                                         draft = previousDraft
+                                                        draftWasRestored = false
                                                     } else {
                                                         // 送信登録に失敗した場合は元の発言を履歴へ戻し、
                                                         // 再試行できるよう本文も入力欄に残します。
@@ -2426,6 +2429,7 @@ private fun HiyoriApp() {
                                                         nextId = (messages.maxOfOrNull { it.id }?.toLong() ?: -1L) + 1L
                                                         persistMessages()
                                                         draft = message.text
+                                                        draftWasRestored = false
                                                     }
                                                 }
                                             },
@@ -2439,6 +2443,7 @@ private fun HiyoriApp() {
                                         TextButton(
                                             onClick = {
                                                 draft = message.text
+                                                draftWasRestored = false
                                                 status = "発言を入力欄に戻しました。編集して再送信できます"
                                             },
                                             enabled = historyLoadError == null && !isGenerating && !continuousVoice,
@@ -2455,6 +2460,7 @@ private fun HiyoriApp() {
                                             TextButton(
                                                 onClick = {
                                                     draft = "直前の説明を、もう少し詳しく教えてください。"
+                                                    draftWasRestored = false
                                                     status = "詳しく聞く文章を入力欄に入れました"
                                                 },
                                                 enabled = historyLoadError == null && !isGenerating && !continuousVoice
@@ -2464,6 +2470,7 @@ private fun HiyoriApp() {
                                             TextButton(
                                                 onClick = {
                                                     draft = "直前の説明を、別の言い方でもう一度説明してください。"
+                                                    draftWasRestored = false
                                                     status = "言い換えを頼む文章を入力欄に入れました"
                                                 },
                                                 enabled = historyLoadError == null && !isGenerating && !continuousVoice
@@ -2473,6 +2480,7 @@ private fun HiyoriApp() {
                                             TextButton(
                                                 onClick = {
                                                     draft = "直前の説明を、重要な点だけに絞って短くまとめてください。"
+                                                    draftWasRestored = false
                                                     status = "要点をまとめてもらう文章を入力欄に入れました"
                                                 },
                                                 enabled = historyLoadError == null && !isGenerating && !continuousVoice
