@@ -833,6 +833,7 @@ private fun HiyoriApp() {
     var isGenerating by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
     var showAdvancedSettings by remember { mutableStateOf(false) }
+    var showHistoryTools by remember { mutableStateOf(false) }
     var pendingDeleteMessageId by remember { mutableStateOf<Int?>(null) }
     var pendingRestore by remember { mutableStateOf<List<ChatMessage>?>(null) }
     var pendingCharacterSettings by remember { mutableStateOf<CharacterSettings?>(null) }
@@ -1980,8 +1981,14 @@ private fun HiyoriApp() {
                 }
 
                 if (messages.isNotEmpty()) {
-                    OutlinedTextField(
-                        value = historyQuery,
+                    OutlinedButton(
+                        onClick = { showHistoryTools = !showHistoryTools },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                    ) {
+                        Text(if (showHistoryTools) "履歴検索・絞り込みを閉じる" else "履歴を検索・絞り込む（${filteredMessages.size} / ${messages.size}件）")
+                    }
+                    if (showHistoryTools) {
+                       value = historyQuery,
                         onValueChange = { historyQuery = it },
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                         placeholder = { Text("会話履歴を検索") },
@@ -2093,6 +2100,7 @@ private fun HiyoriApp() {
                                 enabled = filteredMessages.isNotEmpty()
                             ) { Text("次へ") }
                         }
+                    }
                     }
                 }
 
