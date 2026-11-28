@@ -502,3 +502,17 @@
 - artifact期限: 2027-02-26 12:58 UTC
 - 同日のGitHub Pagesビルド・デプロイも成功: https://github.com/takamitsu386-rgb/kokoro-family/actions/runs/46147244055
 - 注意: CI成功は署名付きAABやPixel 9などの実機動作確認を意味しない。実機テスト項目は未確認のまま維持する。
+
+
+### 最新CI記録：チェックリスト更新後の再検証（Android build #543、2026-11-28）
+
+- commit: `3fb2e924605b544b99f69d500b864c977b879e36`
+- 実行結果: https://github.com/takamitsu386-rgb/kokoro-family/actions/runs/46148037905
+- 結果: Android Lint、ユニットテスト、debug APK生成・アップロード、未署名Release AAB生成・アップロードがすべて成功。GitHub Actions全体もsuccess。
+- debug APK artifact ID: `15264612458`（12,192,684 bytes）
+- debug APK artifact archive SHA-256: `b18f64a5e0304c2def0cb42e9526fb86de38b0883d45def3cd96fc0a39b90191`
+- 未署名Release AAB artifact ID: `15264697214`（8,592,717 bytes）
+- 未署名Release AAB artifact archive SHA-256: `28176477ae89f3fe02bdd0436ad52d17d4f36ad7110ee17805cc3056bb728394`
+- artifact期限: 2027-02-26 13:07 UTC
+- 同じcommitのGitHub Pagesビルド・デプロイも成功: https://github.com/takamitsu386-rgb/kokoro-family/actions/runs/46148037554
+- 注意: CI成功は署名付きAABやPixel 9などの実機動作確認を意味しない。実機テスト項目は未確認のまま維持する。
