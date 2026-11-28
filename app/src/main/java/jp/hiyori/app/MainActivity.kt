@@ -766,36 +766,36 @@ private fun HiyoriApp() {
     var characterNotes by remember(context) {
         mutableStateOf(
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getString(CHARACTER_NOTES_KEY, "").orEmpty().take(500)
+                .getString(CHARACTER_NOTES_KEY, "").orEmpty().let { truncateAtUtf16Boundary(it, 500) }
         )
     }
 
     LaunchedEffect(characterNotes) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putString(CHARACTER_NOTES_KEY, characterNotes.take(500)).apply()
+            .edit().putString(CHARACTER_NOTES_KEY, truncateAtUtf16Boundary(characterNotes, 500)).apply()
     }
 
     var userCallName by remember(context) {
         mutableStateOf(
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getString(USER_CALL_NAME_KEY, "").orEmpty().take(20)
+                .getString(USER_CALL_NAME_KEY, "").orEmpty().let { truncateAtUtf16Boundary(it, 20) }
         )
     }
 
     LaunchedEffect(userCallName) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putString(USER_CALL_NAME_KEY, userCallName.take(20)).apply()
+            .edit().putString(USER_CALL_NAME_KEY, truncateAtUtf16Boundary(userCallName, 20)).apply()
     }
 
     var characterName by remember(context) {
         mutableStateOf(
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getString(CHARACTER_NAME_KEY, "ひよりちゃん").orEmpty().trim().take(20).ifBlank { "ひよりちゃん" }
+                .getString(CHARACTER_NAME_KEY, "ひよりちゃん").orEmpty().trim().let { truncateAtUtf16Boundary(it, 20) }.ifBlank { "ひよりちゃん" }
         )
     }
 
     LaunchedEffect(characterName) {
-        val safeName = characterName.trim().take(20).ifBlank { "ひよりちゃん" }
+        val safeName = truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit().putString(CHARACTER_NAME_KEY, safeName).apply()
     }
@@ -803,13 +803,13 @@ private fun HiyoriApp() {
     var voicePreviewText by remember(context) {
         mutableStateOf(
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getString(VOICE_PREVIEW_TEXT_KEY, "").orEmpty().take(100)
+                .getString(VOICE_PREVIEW_TEXT_KEY, "").orEmpty().let { truncateAtUtf16Boundary(it, 100) }
         )
     }
 
     LaunchedEffect(voicePreviewText) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putString(VOICE_PREVIEW_TEXT_KEY, voicePreviewText.take(100)).apply()
+            .edit().putString(VOICE_PREVIEW_TEXT_KEY, truncateAtUtf16Boundary(voicePreviewText, 100)).apply()
     }
 
     var speechRate by remember(context) {
@@ -950,8 +950,8 @@ private fun HiyoriApp() {
                                                     continuousVoice = false
                                                     shouldListenAgain = false
                                                 } else {
-                                                    status = "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}が返事を考えています"
-                                                    val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle, responseLength, characterNotes, userCallName, characterName.trim().take(20).ifBlank { "ひよりちゃん" })
+                                                    status = "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}が返事を考えています"
+                                                    val prompt = buildHiyoriPrompt(messages.toList(), speakingStyle, responseLength, characterNotes, userCallName, truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" })
                                                     val generatedText = model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty().trim()
                                                     val (response, responseWasTruncated) = limitGeneratedResponse(generatedText)
                                                     if (response.isNotBlank()) {
@@ -971,10 +971,10 @@ private fun HiyoriApp() {
                                                                 shouldListenAgain = false
                                                                 status = "返事は届きましたが、音声の再生に失敗しました"
                                                             } else {
-                                                                status = if (responseWasTruncated) "返事が届きました（長文のため末尾を省略しました）" else "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}から返事が届きました"
+                                                                status = if (responseWasTruncated) "返事が届きました（長文のため末尾を省略しました）" else "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}から返事が届きました"
                                                             }
                                                         } else {
-                                                            status = if (responseWasTruncated) "返事が届きました（長文のため末尾を省略しました）" else "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}から返事が届きました"
+                                                            status = if (responseWasTruncated) "返事が届きました（長文のため末尾を省略しました）" else "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}から返事が届きました"
                                                         }
                                                     } else {
                                                         status = "返事を作れませんでした。もう一度送ってください"
@@ -1046,7 +1046,7 @@ private fun HiyoriApp() {
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ja-JP")
-                    putExtra(RecognizerIntent.EXTRA_PROMPT, "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}に話しかけてください")
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}に話しかけてください")
                 }
                 speechLauncher.launch(intent)
                 isListening = true
@@ -1083,7 +1083,7 @@ private fun HiyoriApp() {
             try {
                 val profile = buildString {
                     appendLine("キャラクター設定")
-                    appendLine("名前：${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}")
+                    appendLine("名前：${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}")
                     appendLine("あなたの呼び方：${userCallName.ifBlank { "指定なし" }}")
                     appendLine("話し方：$speakingStyle")
                     appendLine("返答の長さ：$responseLength")
@@ -1107,9 +1107,9 @@ private fun HiyoriApp() {
         if (uri != null) {
             try {
                 val settings = CharacterSettings(
-                    characterName.trim().take(20).ifBlank { "ひよりちゃん" },
+                    truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" },
                     userCallName.trim().take(20), speakingStyle, responseLength,
-                    characterNotes.take(500), voicePreviewText.take(100)
+                    truncateAtUtf16Boundary(characterNotes, 500), truncateAtUtf16Boundary(voicePreviewText, 100)
                 )
                 context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)
                     ?.use { it.write(createCharacterSettingsBackup(settings)) }
@@ -1140,7 +1140,7 @@ private fun HiyoriApp() {
         if (uri != null) {
             try {
                 context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)
-                    ?.use { it.write(createTranscript(messages.toList(), characterName.trim().take(20).ifBlank { "ひよりちゃん" })) }
+                    ?.use { it.write(createTranscript(messages.toList(), truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" })) }
                     ?: throw IllegalArgumentException("保存先を開けませんでした")
                 status = "会話履歴をテキストで保存しました"
             } catch (error: Exception) {
@@ -1155,7 +1155,7 @@ private fun HiyoriApp() {
         if (uri != null) {
             try {
                 context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)
-                    ?.use { it.write(createTranscript(filteredMessages.toList(), characterName.trim().take(20).ifBlank { "ひよりちゃん" })) }
+                    ?.use { it.write(createTranscript(filteredMessages.toList(), truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" })) }
                     ?: throw IllegalArgumentException("保存先を開けませんでした")
                 status = "検索結果をテキストで保存しました"
             } catch (error: Exception) {
@@ -1239,7 +1239,7 @@ private fun HiyoriApp() {
             onDismissRequest = { pendingRestore = null },
             title = { Text("バックアップを復元しますか？") },
             text = {
-                Text(createRestoreSummary(pendingRestore.orEmpty(), characterName.trim().take(20).ifBlank { "ひよりちゃん" }) + "\n\n現在の会話履歴を置き換えます。今の履歴を残す場合は、先にバックアップしてください。")
+                Text(createRestoreSummary(pendingRestore.orEmpty(), truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }) + "\n\n現在の会話履歴を置き換えます。今の履歴を残す場合は、先にバックアップしてください。")
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -1350,7 +1350,7 @@ private fun HiyoriApp() {
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = characterName.trim().take(20).ifBlank { "ひよりちゃん" },
+                            text = truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" },
                             style = MaterialTheme.typography.headlineMedium
                         )
                         Text(
@@ -1416,7 +1416,7 @@ private fun HiyoriApp() {
                     Text(
                         text = when {
                             isGenerating -> "連続会話中：返事を準備しています"
-                            isSpeaking -> "連続会話中：${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}が話しています"
+                            isSpeaking -> "連続会話中：${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}が話しています"
                             isListening -> "連続会話中：あなたの声を聞いています"
                             else -> "連続会話ON：次の入力を準備しています"
                         },
@@ -1433,7 +1433,7 @@ private fun HiyoriApp() {
                     OutlinedButton(
                         onClick = {
                             ttsEngine?.speak(
-                                voicePreviewText.trim().ifBlank { "こんにちは。${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}です。これからよろしくね。" },
+                                voicePreviewText.trim().ifBlank { "こんにちは。${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}です。これからよろしくね。" },
                                 TextToSpeech.QUEUE_FLUSH,
                                 null,
                                 "hiyori_voice_preview"
@@ -1509,7 +1509,7 @@ private fun HiyoriApp() {
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             clipboard.setPrimaryClip(
-                                android.content.ClipData.newPlainText("${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}との検索結果", createTranscript(filteredMessages, characterName.trim().take(20).ifBlank { "ひよりちゃん" }))
+                                android.content.ClipData.newPlainText("${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}との検索結果", createTranscript(filteredMessages, truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }))
                             )
                             status = "${filteredMessages.size}件の検索結果をコピーしました"
                         },
@@ -1520,7 +1520,7 @@ private fun HiyoriApp() {
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             clipboard.setPrimaryClip(
-                                android.content.ClipData.newPlainText("${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}との会話", createTranscript(messages.toList(), characterName.trim().take(20).ifBlank { "ひよりちゃん" }))
+                                android.content.ClipData.newPlainText("${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}との会話", createTranscript(messages.toList(), truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }))
                             )
                             status = "会話履歴をコピーしました"
                         },
@@ -1532,8 +1532,8 @@ private fun HiyoriApp() {
                             try {
                                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"
-                                    putExtra(Intent.EXTRA_SUBJECT, "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}との会話")
-                                    putExtra(Intent.EXTRA_TEXT, createTranscript(messages.toList(), characterName.trim().take(20).ifBlank { "ひよりちゃん" }))
+                                    putExtra(Intent.EXTRA_SUBJECT, "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}との会話")
+                                    putExtra(Intent.EXTRA_TEXT, createTranscript(messages.toList(), truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }))
                                 }
                                 context.startActivity(Intent.createChooser(shareIntent, "会話を共有"))
                                 status = "共有先を選択してください"
@@ -1604,7 +1604,7 @@ private fun HiyoriApp() {
 
                 OutlinedTextField(
                     value = characterName,
-                    onValueChange = { characterName = it.take(20) },
+                    onValueChange = { characterName = truncateAtUtf16Boundary(it, 20) },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     label = { Text("キャラクター名") },
                     placeholder = { Text("ひよりちゃん") },
@@ -1614,7 +1614,7 @@ private fun HiyoriApp() {
 
                 OutlinedTextField(
                     value = userCallName,
-                    onValueChange = { userCallName = it.take(20) },
+                    onValueChange = { userCallName = truncateAtUtf16Boundary(it, 20) },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     label = { Text("あなたの呼び方（任意）") },
                     placeholder = { Text("例：〇〇さん、〇〇") },
@@ -1624,7 +1624,7 @@ private fun HiyoriApp() {
 
                 OutlinedTextField(
                     value = characterNotes,
-                    onValueChange = { characterNotes = it.take(500) },
+                    onValueChange = { characterNotes = truncateAtUtf16Boundary(it, 500) },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     label = { Text("キャラの性格・設定メモ（任意）") },
                     placeholder = { Text("例：好奇心旺盛で、動物や星の話が好き") },
@@ -1635,7 +1635,7 @@ private fun HiyoriApp() {
 
                 OutlinedTextField(
                     value = voicePreviewText,
-                    onValueChange = { voicePreviewText = it.take(100) },
+                    onValueChange = { voicePreviewText = truncateAtUtf16Boundary(it, 100) },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     label = { Text("声の試聴文（任意）") },
                     placeholder = { Text("空欄ならキャラクター名入りの標準文を読み上げます") },
@@ -1679,7 +1679,7 @@ private fun HiyoriApp() {
                     onClick = {
                         val profile = buildString {
                             appendLine("キャラクター設定")
-                            appendLine("名前：${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}")
+                            appendLine("名前：${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}")
                             appendLine("あなたの呼び方：${userCallName.ifBlank { "指定なし" }}")
                             appendLine("話し方：$speakingStyle")
                             appendLine("返答の長さ：$responseLength")
@@ -1890,7 +1890,7 @@ private fun HiyoriApp() {
                                     horizontalAlignment = if (message.isUser) Alignment.End else Alignment.Start
                                 ) {
                                     Text(
-                                        text = if (message.isUser) "あなた" else characterName.trim().take(20).ifBlank { "ひよりちゃん" },
+                                        text = if (message.isUser) "あなた" else truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" },
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -2011,7 +2011,7 @@ private fun HiyoriApp() {
                                             try {
                                                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                                     type = "text/plain"
-                                                    putExtra(Intent.EXTRA_TEXT, createSingleMessageTranscript(message, characterName.trim().take(20).ifBlank { "ひよりちゃん" }))
+                                                    putExtra(Intent.EXTRA_TEXT, createSingleMessageTranscript(message, truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }))
                                                 }
                                                 context.startActivity(Intent.createChooser(shareIntent, "メッセージを共有"))
                                                 status = "共有先を選択してください"
@@ -2035,8 +2035,8 @@ private fun HiyoriApp() {
                                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                             clipboard.setPrimaryClip(
                                                 android.content.ClipData.newPlainText(
-                                                    if (message.isUser) "あなたのメッセージ" else "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}の返事",
-                                                    createSingleMessageTranscript(message, characterName.trim().take(20).ifBlank { "ひよりちゃん" })
+                                                    if (message.isUser) "あなたのメッセージ" else "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}の返事",
+                                                    createSingleMessageTranscript(message, truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" })
                                                 )
                                             )
                                             status = "メッセージをコピーしました"
@@ -2058,7 +2058,7 @@ private fun HiyoriApp() {
                         horizontalArrangement = Arrangement.Center
                     ) {
                         CircularProgressIndicator()
-                        Text(" ${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}が考えています…")
+                        Text(" ${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}が考えています…")
                     }
                 }
 
@@ -2085,7 +2085,7 @@ private fun HiyoriApp() {
                                     val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                                         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                                         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ja-JP")
-                                        putExtra(RecognizerIntent.EXTRA_PROMPT, "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}に話しかけてください")
+                                        putExtra(RecognizerIntent.EXTRA_PROMPT, "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}に話しかけてください")
                                     }
                                     speechLauncher.launch(intent)
                                     isListening = true
@@ -2110,7 +2110,7 @@ private fun HiyoriApp() {
                                     RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
                                 )
                                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ja-JP")
-                                putExtra(RecognizerIntent.EXTRA_PROMPT, "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}に話しかけてください")
+                                putExtra(RecognizerIntent.EXTRA_PROMPT, "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}に話しかけてください")
                             }
                             speechLauncher.launch(intent)
                             isListening = true
