@@ -54,7 +54,9 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
-    }\n\n    buildFeatures {
+    }
+
+    buildFeatures {
         compose = true
         buildConfig = true
     }
