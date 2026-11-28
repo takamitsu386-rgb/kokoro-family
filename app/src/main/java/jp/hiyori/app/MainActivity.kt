@@ -152,15 +152,22 @@ private fun createCharacterSettingsBackup(settings: CharacterSettings): String {
 private const val MAX_MESSAGE_CHARS = 20000
 private const val RESPONSE_TRUNCATION_NOTICE = "\n\n（長文のため、文字数上限に合わせて省略しました）"
 
-private fun limitGeneratedResponse(text: String): Pair<String, Boolean> {
-    if (text.length <= MAX_MESSAGE_CHARS) return text to false
-    var end = MAX_MESSAGE_CHARS - RESPONSE_TRUNCATION_NOTICE.length
-    // UTF-16のサロゲートペアを途中で分断しない。
+// UTF-16のサロゲートペアを途中で分断せず、指定文字数以内に切り詰める。
+private fun truncateAtUtf16Boundary(text: String, maxChars: Int): String {
+    if (text.length <= maxChars) return text
+    var end = maxChars.coerceAtLeast(0)
     if (end > 0 && end < text.length &&
         Character.isHighSurrogate(text[end - 1]) && Character.isLowSurrogate(text[end])) {
         end--
     }
-    return text.substring(0, end).trimEnd() + RESPONSE_TRUNCATION_NOTICE to true
+    return text.substring(0, end)
+}
+
+private fun limitGeneratedResponse(text: String): Pair<String, Boolean> {
+    if (text.length <= MAX_MESSAGE_CHARS) return text to false
+    val contentLimit = MAX_MESSAGE_CHARS - RESPONSE_TRUNCATION_NOTICE.length
+    return truncateAtUtf16Boundary(text, contentLimit).trimEnd() +
+        RESPONSE_TRUNCATION_NOTICE to true
 }
 
 private const val MAX_MESSAGES = 10000
@@ -642,7 +649,7 @@ private fun HiyoriApp() {
     var draft by remember(context) {
         mutableStateOf(
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getString(DRAFT_KEY, "").orEmpty().take(20000)
+                .getString(DRAFT_KEY, "").orEmpty().let { truncateAtUtf16Boundary(it, MAX_MESSAGE_CHARS) }
         )
     }
 
@@ -2112,7 +2119,7 @@ private fun HiyoriApp() {
                 ) {
                     OutlinedTextField(
                         value = draft,
-                        onValueChange = { draft = it.take(20000) },
+                        onValueChange = { draft = truncateAtUtf16Boundary(it, MAX_MESSAGE_CHARS) },
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("メッセージを入力") },
                         singleLine = false,
