@@ -156,6 +156,31 @@ Gemini NanoはAICoreを通じて端末内で推論するため、会話ごとの
 3. ページ下部の「Artifacts」から「hiyori-debug-apk」を選んで取得する
 4. ZIPを展開すると debug APK が入っている
 
+## 正式リリース（Google Play向けAAB）
+
+正式リリース用の署名付きAABは、専用のGitHub Actionsワークフローから手動作成する構成です。通常のAndroid debug buildワークフローはこれまでどおりdebug APKだけを作成します。
+
+### 初回だけ必要な署名設定
+
+署名鍵はアプリ更新時にも同じものを使い続ける必要があります。鍵の作成・保管・復旧用バックアップは、保護者など信頼できる成人と一緒に慎重に行ってください。署名鍵ファイルやパスワードをチャット、ソースコード、公開リポジトリへ送信・保存しないでください。
+
+GitHubリポジトリの **Settings → Secrets and variables → Actions** に、次のRepository secretsを登録します。
+
+- `RELEASE_KEYSTORE_BASE64`：リリース用キーストアファイルをBase64エンコードした文字列
+- `RELEASE_STORE_PASSWORD`：キーストアのパスワード
+- `RELEASE_KEY_ALIAS`：署名鍵のエイリアス
+- `RELEASE_KEY_PASSWORD`：署名鍵のパスワード
+
+キーストアの原本と復旧用コピーは、GitHub Secretsだけに依存せず、安全なオフライン保管場所にも保管してください。Base64は暗号化ではありません。Secretsに登録する値以外をリポジトリへコミットしないでください。
+
+### AABの作成
+
+1. 上記4つのRepository secretsが正しく登録されていることを確認します。
+2. GitHubの **Actions → Android signed release bundle → Run workflow** を選びます。
+3. 成功した実行のArtifactsから `hiyori-release-aab` を取得します。
+
+このワークフローは署名情報が1つでも不足している場合、ビルド前に停止します。署名鍵を設定していない状態で、誤って未署名AABを正式版として配布することはありません。Google Playへの公開・審査・ストア登録は別作業です。
+
 ## 未確認・未実装
 - 音声入力レイアウトと会話ルールの変更版はGitHub Actionsでビルド成功を確認済み
 - Pixel 9実機へのインストール・動作テストは未実施
