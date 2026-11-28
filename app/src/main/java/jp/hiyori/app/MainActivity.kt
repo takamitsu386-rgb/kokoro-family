@@ -2018,6 +2018,11 @@ private fun HiyoriApp() {
                             "声の試聴文：${voicePreviewText.ifBlank { "標準文を使用" }}",
                             style = MaterialTheme.typography.bodySmall
                         )
+                        Text(
+                            "設定は自動保存され、次回起動時も引き継がれます。",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
