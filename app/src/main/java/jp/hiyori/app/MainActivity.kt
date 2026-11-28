@@ -305,7 +305,7 @@ private fun loadMessages(context: Context): MessageLoadResult {
     val saved = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .getString(MESSAGES_KEY, null) ?: return MessageLoadResult(emptyList())
     return try {
-        require(saved.length <= 5_000_000) { "保存済み会話データが大きすぎます" }
+        require(isStoredHistoryWithinLimit(saved.length)) { "保存済み会話データが大きすぎます" }
         val json = JSONArray(saved)
         require(json.length() <= MAX_MESSAGES) { "保存済みメッセージ数が上限を超えています" }
         val restored = ArrayList<ChatMessage>(json.length())
@@ -369,8 +369,10 @@ private fun saveMessages(
                 .put("isFavorite", message.isFavorite)
         )
     }
+    val serialized = json.toString()
+    if (!isStoredHistoryWithinLimit(serialized.length)) return false
     val editor = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        .edit().putString(MESSAGES_KEY, json.toString())
+        .edit().putString(MESSAGES_KEY, serialized)
     return if (commitImmediately) editor.commit() else {
         editor.apply()
         true
@@ -835,7 +837,10 @@ private fun HiyoriApp() {
             status = "履歴の読み込みに失敗しているため保存を停止しています。バックアップから復元するか、履歴を全削除してください"
             return
         }
-        saveMessages(context, messages)
+        val saved = runCatching { saveMessages(context, messages) }.getOrDefault(false)
+        if (!saved) {
+            status = "会話履歴が保存上限（500万文字）を超えています。以前の保存データは保護しました。バックアップや履歴整理を行ってください"
+        }
     }
     var isGenerating by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
