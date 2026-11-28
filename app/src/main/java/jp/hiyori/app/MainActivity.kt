@@ -2396,13 +2396,29 @@ private fun HiyoriApp() {
                                     if (message.isUser && messages.lastOrNull()?.id == message.id) {
                                         TextButton(
                                             onClick = {
-                                                // 最後の未返信メッセージのIDを再利用し、ID上限付近でも安全に再試行できるようにします。
+                                                // 再送信に失敗しても元の発言を履歴か入力欄に残します。
                                                 val previousDraft = draft
                                                 nextId = message.id.toLong()
                                                 messages.removeAll { it.id == message.id }
-                                                persistMessages()
-                                                sendMessage(message.text)
-                                                draft = previousDraft
+                                                if (!persistMessages()) {
+                                                    messages.add(message)
+                                                    nextId = (messages.maxOfOrNull { it.id }?.toLong() ?: -1L) + 1L
+                                                    draft = message.text
+                                                } else {
+                                                    draft = message.text
+                                                    sendMessage(message.text)
+                                                    if (draft.isBlank()) {
+                                                        // 送信登録に成功した場合だけ、元の下書きを戻します。
+                                                        draft = previousDraft
+                                                    } else {
+                                                        // 送信登録に失敗した場合は元の発言を履歴へ戻し、
+                                                        // 再試行できるよう本文も入力欄に残します。
+                                                        messages.add(message)
+                                                        nextId = (messages.maxOfOrNull { it.id }?.toLong() ?: -1L) + 1L
+                                                        persistMessages()
+                                                        draft = message.text
+                                                    }
+                                                }
                                             },
                                             enabled = historyLoadError == null && !isGenerating && !continuousVoice,
                                             modifier = Modifier.padding(top = 0.dp)
