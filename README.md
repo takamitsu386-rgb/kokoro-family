@@ -144,6 +144,7 @@ Gemini NanoはAICoreを通じて端末内で推論するため、会話ごとの
 
 - 会話履歴の検索・絞り込み中に、現在の位置と該当件数を表示し、「前へ」「次へ」で移動できます。
 - 会話履歴を「今日・過去7日間・過去30日間」で期間絞り込みでき、キーワード・発言者・お気に入り条件と組み合わせて検索できます。
+- 会話履歴を「昨日」と「過去90日間」でも期間絞り込みでき、「昨日」は端末のローカル日付の0時から翌日0時直前までを対象にします。
 
 ## APKの取得
 1. GitHubの [Android debug build](https://github.com/takamitsu386-rgb/kokoro-family/actions/workflows/android-build.yml) を開く
