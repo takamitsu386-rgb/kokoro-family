@@ -2201,7 +2201,7 @@ private fun HiyoriApp() {
                                                 draft = message.text
                                                 status = "発言を入力欄に戻しました。編集して再送信できます"
                                             },
-                                            enabled = !isGenerating && !continuousVoice,
+                                            enabled = historyLoadError == null && !isGenerating && !continuousVoice,
                                             modifier = Modifier.padding(top = 0.dp)
                                         ) {
                                             Text("再入力", style = MaterialTheme.typography.labelSmall)
@@ -2217,7 +2217,7 @@ private fun HiyoriApp() {
                                                     draft = "直前の説明を、もう少し詳しく教えてください。"
                                                     status = "詳しく聞く文章を入力欄に入れました"
                                                 },
-                                                enabled = !isGenerating && !continuousVoice
+                                                enabled = historyLoadError == null && !isGenerating && !continuousVoice
                                             ) {
                                                 Text("詳しく聞く", style = MaterialTheme.typography.labelSmall)
                                             }
@@ -2226,7 +2226,7 @@ private fun HiyoriApp() {
                                                     draft = "直前の説明を、別の言い方でもう一度説明してください。"
                                                     status = "言い換えを頼む文章を入力欄に入れました"
                                                 },
-                                                enabled = !isGenerating && !continuousVoice
+                                                enabled = historyLoadError == null && !isGenerating && !continuousVoice
                                             ) {
                                                 Text("言い換える", style = MaterialTheme.typography.labelSmall)
                                             }
@@ -2235,7 +2235,7 @@ private fun HiyoriApp() {
                                                     draft = "直前の説明を、重要な点だけに絞って短くまとめてください。"
                                                     status = "要点をまとめてもらう文章を入力欄に入れました"
                                                 },
-                                                enabled = !isGenerating && !continuousVoice
+                                                enabled = historyLoadError == null && !isGenerating && !continuousVoice
                                             ) {
                                                 Text("要点だけ", style = MaterialTheme.typography.labelSmall)
                                             }
@@ -2387,6 +2387,7 @@ private fun HiyoriApp() {
                     OutlinedTextField(
                         value = draft,
                         onValueChange = { draft = truncateAtUtf16Boundary(it, MAX_MESSAGE_CHARS) },
+                        enabled = historyLoadError == null,
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("メッセージを入力") },
                         singleLine = false,
@@ -2402,7 +2403,7 @@ private fun HiyoriApp() {
                     Spacer(modifier = Modifier.width(6.dp))
                     OutlinedButton(
                         onClick = { draft = "" },
-                        enabled = draft.isNotEmpty() && !isGenerating && !continuousVoice
+                        enabled = historyLoadError == null && draft.isNotEmpty() && !isGenerating && !continuousVoice
                     ) { Text("消去") }
                     Button(
                         onClick = { sendMessage(null) },
