@@ -967,7 +967,7 @@ private fun HiyoriApp() {
                                                                 status = if (responseWasTruncated) "返事が届きました（長文のため末尾を省略しました）" else "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}から返事が届きました"
                                                             }
                                                         } else {
-                                                            status = "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}から返事が届きました"
+                                                            status = if (responseWasTruncated) "返事が届きました（長文のため末尾を省略しました）" else "${characterName.trim().take(20).ifBlank { "ひよりちゃん" }}から返事が届きました"
                                                         }
                                                     } else {
                                                         status = "返事を作れませんでした。もう一度送ってください"
