@@ -4,7 +4,7 @@
 
 ## 1. アプリとビルド
 
-- [ ] 最新のAndroid build validationが成功している
+- [x] 最新のAndroid build validationが成功している
 - [ ] 署名付きRelease AABを作成できる
 - [ ] AABのパッケージ名が `jp.hiyori.app` である
 - [ ] バージョンコード・バージョン名を確認した
@@ -516,3 +516,17 @@
 - artifact期限: 2027-02-26 13:07 UTC
 - 同じcommitのGitHub Pagesビルド・デプロイも成功: https://github.com/takamitsu386-rgb/kokoro-family/actions/runs/46148037554
 - 注意: CI成功は署名付きAABやPixel 9などの実機動作確認を意味しない。実機テスト項目は未確認のまま維持する。
+
+
+### 最新CI記録：Android build #544（2026-11-28）
+
+- commit: `1b7ba4103cce54f221d9ce3b98437f75736d7788`
+- 実行結果: https://github.com/takamitsu386-rgb/kokoro-family/actions/runs/46148511057
+- 結果: Android Lint、15件のユニットテスト、debug APK生成・アップロード、未署名Release AAB生成・アップロードがすべて成功。GitHub Actions全体もsuccess。
+- debug APK artifact ID: `15264941329`（12,192,683 bytes）
+- debug APK artifact archive SHA-256: `3cd83f74f577aae001be0eabc43135872f434b5e6cfc5383d3fc17adaadb2a9f`
+- 未署名Release AAB artifact ID: `15264822769`（8,592,717 bytes）
+- 未署名Release AAB artifact archive SHA-256: `3ccfbe43619314707934824eb41e2b3a09a227a06972cbe9f055c5597fa8624f`
+- artifact期限: 2027-02-26 13:13 UTC
+- 同じcommitのGitHub Pagesビルド・デプロイも成功: https://github.com/takamitsu386-rgb/kokoro-family/actions/runs/46148511568
+- 注意: CI成功は署名付きAABやPixel 9などの実機動作確認を意味しない。実機テスト、署名鍵、プライバシー情報、Play Console準備は未完了のまま別途確認する。
