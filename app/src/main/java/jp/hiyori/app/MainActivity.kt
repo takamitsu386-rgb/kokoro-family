@@ -475,6 +475,17 @@ private fun formatMessageDate(createdAt: Long): String {
         .format(java.time.format.DateTimeFormatter.ofPattern("yyyy年M月d日 (E)", Locale.JAPAN))
 }
 
+private fun historyPeriodStartMillis(period: String): Long? {
+    val today = java.time.LocalDate.now(java.time.ZoneId.systemDefault())
+    val startDate = when (period) {
+        "今日" -> today
+        "過去7日間" -> today.minusDays(6)
+        "過去30日間" -> today.minusDays(29)
+        else -> return null
+    }
+    return startDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+}
+
 private fun timestampedExportName(prefix: String, extension: String): String {
     val timestamp = java.time.LocalDateTime.now().format(
         java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS")
@@ -661,6 +672,7 @@ private fun HiyoriApp() {
     }
     var historyQuery by remember { mutableStateOf("") }
     var historySpeakerFilter by remember { mutableStateOf("すべて") }
+    var historyPeriodFilter by remember { mutableStateOf("すべて") }
     var favoritesOnly by remember { mutableStateOf(false) }
     var searchResultIndex by remember { mutableStateOf(0) }
     val favoriteCount = messages.count { it.isFavorite }
@@ -677,7 +689,9 @@ private fun HiyoriApp() {
         "${"%.2f".format(Locale.JAPAN, backupSizeBytes / 1_048_576.0)}MB/5MB" +
             if (backupSizeBytes > MAX_BACKUP_BYTES) "（上限超過）" else ""
     }
-    val filtersActive = historyQuery.isNotBlank() || historySpeakerFilter != "すべて" || favoritesOnly
+    val filtersActive = historyQuery.isNotBlank() || historySpeakerFilter != "すべて" ||
+        historyPeriodFilter != "すべて" || favoritesOnly
+    val periodStartMillis = historyPeriodStartMillis(historyPeriodFilter)
     val filteredMessages = messages.filter { message ->
         val matchesText = historyQuery.isBlank() ||
             message.text.contains(historyQuery.trim(), ignoreCase = true)
@@ -686,10 +700,12 @@ private fun HiyoriApp() {
             "ひより" -> !message.isUser
             else -> true
         }
-        matchesText && matchesSpeaker && (!favoritesOnly || message.isFavorite)
+        val matchesPeriod = periodStartMillis == null ||
+            (message.createdAt >= periodStartMillis && message.createdAt <= System.currentTimeMillis())
+        matchesText && matchesSpeaker && matchesPeriod && (!favoritesOnly || message.isFavorite)
     }
 
-    LaunchedEffect(historyQuery, historySpeakerFilter, favoritesOnly, messages.map { it.id to it.isFavorite }) {
+    LaunchedEffect(historyQuery, historySpeakerFilter, historyPeriodFilter, favoritesOnly, messages.map { it.id to it.isFavorite }) {
         searchResultIndex = filteredMessages.lastIndex.coerceAtLeast(0)
         if (filteredMessages.isNotEmpty()) {
             listState.animateScrollToItem(filteredMessages.lastIndex)
@@ -1289,6 +1305,7 @@ private fun HiyoriApp() {
                     nextId = (messages.maxOfOrNull { it.id }?.toLong() ?: -1L) + 1L
                     historyQuery = ""
                     historySpeakerFilter = "すべて"
+                    historyPeriodFilter = "すべて"
                     favoritesOnly = false
                     pendingRestore = null
                     status = "${messages.size}件のメッセージを復元しました"
@@ -1820,6 +1837,24 @@ private fun HiyoriApp() {
                             }
                         }
                     }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("すべて", "今日", "過去7日間", "過去30日間").forEach { period ->
+                            if (historyPeriodFilter == period) {
+                                Button(
+                                    onClick = { historyPeriodFilter = period },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text(period, fontSize = 11.sp) }
+                            } else {
+                                OutlinedButton(
+                                    onClick = { historyPeriodFilter = period },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text(period, fontSize = 11.sp) }
+                            }
+                        }
+                    }
                     OutlinedButton(
                         onClick = { favoritesOnly = !favoritesOnly },
                         modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
@@ -1831,6 +1866,7 @@ private fun HiyoriApp() {
                             onClick = {
                                 historyQuery = ""
                                 historySpeakerFilter = "すべて"
+                                historyPeriodFilter = "すべて"
                                 favoritesOnly = false
                             },
                             modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
