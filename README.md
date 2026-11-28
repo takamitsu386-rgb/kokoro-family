@@ -142,6 +142,8 @@ Gemini NanoはAICoreを通じて端末内で推論するため、会話ごとの
 
 履歴の絞り込みをしていないときも、会話総数とお気に入り登録数を一覧上部に表示します。
 
+- 会話履歴の検索・絞り込み中に、現在の位置と該当件数を表示し、「前へ」「次へ」で移動できます。
+
 ## APKの取得
 1. GitHubの [Android debug build](https://github.com/takamitsu386-rgb/kokoro-family/actions/workflows/android-build.yml) を開く
 2. 最新の成功した実行を選ぶ
