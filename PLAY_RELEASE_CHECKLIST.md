@@ -182,3 +182,16 @@
 - 未署名Release AAB artifact archive SHA-256: `6091fd00109f9bc1342f5d3c9fa1c54473622c7a8163e8ba66c228fa477c4fb7`
 - artifact期限: 2027-02-26 09:10 UTC
 - 注意: CI成功は署名付きAABや実機動作の確認を意味しない。実機確認・署名鍵・公開準備の各項目は別途確認する。
+
+
+### 最新CI記録：Android build #514（2026-11-28）
+
+- commit: `98fb972d8446d237257be53eaf3d87a5a5cbc6a0`
+- 実行結果: https://github.com/takamitsu386-rgb/kokoro-family/actions/runs/46129512157
+- 結果: lint成功、ユニットテスト成功、debug APK生成・アップロード成功、未署名Release AAB生成・アップロード成功。GitHub Actions全体もsuccess。
+- debug APK artifact ID: `15257068173`（12,192,218 bytes）
+- debug APK artifact archive SHA-256: `15fa0594410ced0a1afd793842c26b3ec2e4ac0d51b389f3a1decc79bbefe53a`
+- 未署名Release AAB artifact ID: `15256663754`（8,592,615 bytes）
+- 未署名Release AAB artifact archive SHA-256: `01376392cfccdbb663e089123192b58711aafb2184c5f634c222a29437448a14`
+- artifact期限: 2027-02-26 09:14 UTC
+- 注意: CI成功は署名付きAABや実機動作の確認を意味しない。実機確認・署名鍵・公開準備の各項目は別途確認する。
