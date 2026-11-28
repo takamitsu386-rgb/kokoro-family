@@ -884,7 +884,14 @@ private fun HiyoriApp() {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit().putBoolean(SPEAK_REPLIES_KEY, speakReplies).apply()
         if (!speakReplies) {
+            if (continuousVoice && isListening) {
+                // 音声認識画面が開いたまま読み上げをOFFにした場合、
+                // 戻ってきた認識結果を意図せず送信しないよう破棄する。
+                discardNextSpeechResult = true
+                isListening = false
+            }
             ttsEngine?.stop()
+            isSpeaking = false
             continuousVoice = false
             shouldListenAgain = false
         }
