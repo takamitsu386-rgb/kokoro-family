@@ -170,6 +170,36 @@ private fun limitGeneratedResponse(text: String): Pair<String, Boolean> {
         RESPONSE_TRUNCATION_NOTICE to true
 }
 
+/**
+ * 画面表示用の本文は変更せず、読み上げ時だけMarkdownの装飾やURLを整える。
+ * コードブロックは音声で読み上げず、本文に残したまま画面で確認できるようにする。
+ */
+private fun prepareSpeechText(text: String): String {
+    return text
+        .replace(Regex("(?s)```.*?```"), " ")
+        .replace(Regex("(?m)^`{3,}.*$"), " ")
+        .replace(Regex("!\\[([^\\]]*)\\]\\([^)]*\\)"), "$1")
+        .replace(Regex("\\[([^\\]]+)\\]\\([^)]*\\)"), "$1")
+        .replace(Regex("https?://\\S+"), " ")
+        .replace(Regex("(?m)^\\s{0,3}#{1,6}\\s*"), "")
+        .replace(Regex("(?m)^\\s{0,3}>\\s?"), "")
+        .replace(Regex("(?m)^\\s*(?:[-*+]\\s+|\\d+[.)]\\s+)"), "")
+        .replace(Regex("`([^`]+)`"), "$1")
+        .replace("**", "")
+        .replace("__", "")
+        .replace("~~", "")
+        .replace(Regex("\\*([^*\\n]+)\\*"), "$1")
+        .replace(Regex("_([^_\\n]+)_"), "$1")
+        .replace(Regex("(?m)^\\s*[-*_]{3,}\\s*$"), " ")
+        .replace(Regex("(?m)^\\s*\\|?\\s*:?-{3,}:?\\s*(?:\\|\\s*:?-{3,}:?\\s*)+\\|?\\s*$"), " ")
+        .replace(Regex("<[^>]+>"), " ")
+        .replace(Regex("[ \\t]*\\n[ \\t]*"), "。")
+        .replace(Regex("[ \\t]{2,}"), " ")
+        .replace(Regex("。{2,}"), "。")
+        .replace(Regex("([、。！？])。+"), "$1")
+        .trim()
+}
+
 private const val MAX_MESSAGES = 10000
 private const val MAX_BACKUP_BYTES = 5_000_000
 private const val MAX_CHARACTER_SETTINGS_BYTES = 100_000
@@ -1024,8 +1054,10 @@ private fun HiyoriApp() {
                                                         messages.add(reply)
                                                         saveMessages(context, messages)
                                                         if (ttsReady && speakReplies) {
+                                                            val speechText = prepareSpeechText(response)
+                                                                .ifBlank { "返事を画面に表示しました。内容を確認してください。" }
                                                             val speechResult = ttsEngine?.speak(
-                                                                response,
+                                                                speechText,
                                                                 TextToSpeech.QUEUE_FLUSH,
                                                                 null,
                                                                 "hiyori_reply_${reply.id}"
@@ -2130,8 +2162,10 @@ private fun HiyoriApp() {
                                     if (!message.isUser) {
                                         TextButton(
                                             onClick = {
+                                                val speechText = prepareSpeechText(message.text)
+                                                    .ifBlank { "返事を画面に表示しました。内容を確認してください。" }
                                                 val speechResult = ttsEngine?.speak(
-                                                    message.text,
+                                                    speechText,
                                                     TextToSpeech.QUEUE_FLUSH,
                                                     null,
                                                     "hiyori_manual_${message.id}"
