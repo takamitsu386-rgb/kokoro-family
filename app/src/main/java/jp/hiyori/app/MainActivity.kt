@@ -1904,7 +1904,7 @@ private fun HiyoriApp() {
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     label = { Text("キャラクター名") },
                     placeholder = { Text("ひよりちゃん") },
-                    supportingText = { Text("${characterName.length}/20字。空欄の場合は「ひよりちゃん」になります") },
+                    supportingText = { Text(if (characterName.length >= 18) "${characterName.length}/20字（残り${20-characterName.length}字）。空欄の場合は「ひよりちゃん」になります" else "${characterName.length}/20字。空欄の場合は「ひよりちゃん」になります", color = if (characterName.length >= 18) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true
                 )
 
@@ -1914,7 +1914,7 @@ private fun HiyoriApp() {
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     label = { Text("あなたの呼び方（任意）") },
                     placeholder = { Text("例：〇〇さん、〇〇") },
-                    supportingText = { Text("${userCallName.length}/20字。次の返答から反映されます") },
+                    supportingText = { Text(if (userCallName.length >= 18) "${userCallName.length}/20字（残り${20-userCallName.length}字）。次の返答から反映されます" else "${userCallName.length}/20字。次の返答から反映されます", color = if (userCallName.length >= 18) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true
                 )
 
@@ -1924,7 +1924,7 @@ private fun HiyoriApp() {
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     label = { Text("キャラの性格・設定メモ（任意）") },
                     placeholder = { Text("例：好奇心旺盛で、動物や星の話が好き") },
-                    supportingText = { Text("${characterNotes.length}/500字。次の返答から反映されます") },
+                    supportingText = { Text(if (characterNotes.length >= 450) "${characterNotes.length}/500字（残り${500-characterNotes.length}字）。次の返答から反映されます" else "${characterNotes.length}/500字。次の返答から反映されます", color = if (characterNotes.length >= 450) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) },
                     minLines = 1,
                     maxLines = 3
                 )
@@ -1935,7 +1935,7 @@ private fun HiyoriApp() {
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     label = { Text("声の試聴文（任意）") },
                     placeholder = { Text("空欄ならキャラクター名入りの標準文を読み上げます") },
-                    supportingText = { Text("${voicePreviewText.length}/100字。声を試すボタンで読み上げます") },
+                    supportingText = { Text(if (voicePreviewText.length >= 90) "${voicePreviewText.length}/100字（残り${100-voicePreviewText.length}字）。声を試すボタンで読み上げます" else "${voicePreviewText.length}/100字。声を試すボタンで読み上げます", color = if (voicePreviewText.length >= 90) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) },
                     minLines = 1,
                     maxLines = 2
                 )
