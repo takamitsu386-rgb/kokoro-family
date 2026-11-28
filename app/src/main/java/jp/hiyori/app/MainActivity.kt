@@ -1524,6 +1524,7 @@ private fun HiyoriApp() {
                     nextId = 0L
                     historyQuery = ""
                     historySpeakerFilter = "すべて"
+                    historyPeriodFilter = "すべて"
                     favoritesOnly = false
                     showClearDialog = false
                     status = "会話履歴を削除しました"
