@@ -2594,6 +2594,11 @@ private fun HiyoriApp() {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Text(
+                        "音声認識にはAndroidの音声認識機能を使います。認識方式や通信の有無は端末・設定によって異なります。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     OutlinedButton(
                         onClick = {
                             try {
