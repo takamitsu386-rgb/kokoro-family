@@ -59,4 +59,26 @@ class TextLimitsTest {
         assertTrue(result.first.length <= MAX_MESSAGE_CHARS)
         assertFalse(result.first.dropLast(RESPONSE_TRUNCATION_NOTICE.length).last().isHighSurrogate())
     }
+    @Test
+    fun doesNotProduceUnpairedSurrogatesAtAnyBoundary() {
+        val text = "A😀B😺C🚀D"
+
+        for (limit in 0..text.length + 1) {
+            val result = truncateAtUtf16Boundary(text, limit)
+            assertTrue("length must not exceed limit=$limit", result.length <= limit)
+            var index = 0
+            while (index < result.length) {
+                val char = result[index]
+                if (Character.isHighSurrogate(char)) {
+                    assertTrue("high surrogate must have a following low surrogate at limit=$limit",
+                        index + 1 < result.length && Character.isLowSurrogate(result[index + 1]))
+                    index += 2
+                } else {
+                    assertFalse("low surrogate must not appear without a high surrogate at limit=$limit",
+                        Character.isLowSurrogate(char))
+                    index++
+                }
+            }
+        }
+    }
 }
