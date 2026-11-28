@@ -1033,7 +1033,13 @@ private fun HiyoriApp() {
                                                                 status = if (responseWasTruncated) "返事が届きました（長文のため末尾を省略しました）" else "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}から返事が届きました"
                                                             }
                                                         } else {
-                                                            status = if (responseWasTruncated) "返事が届きました（長文のため末尾を省略しました）" else "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}から返事が届きました"
+                                                            status = if (speakReplies && !ttsReady) {
+                                                                "返事は届きましたが、日本語の読み上げ音声が準備できていません。Androidのテキスト読み上げ設定を確認してください"
+                                                            } else if (responseWasTruncated) {
+                                                                "返事が届きました（長文のため末尾を省略しました）"
+                                                            } else {
+                                                                "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}から返事が届きました"
+                                                            }
                                                         }
                                                     } else {
                                                         status = "返事を作れませんでした。もう一度送ってください"
