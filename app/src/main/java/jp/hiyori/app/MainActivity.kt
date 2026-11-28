@@ -832,15 +832,17 @@ private fun HiyoriApp() {
             } ?: "端末内AIの準備状態を確認できます"
         )
     }
-    fun persistMessages(allowReplaceAfterLoadError: Boolean = false) {
+    fun persistMessages(allowReplaceAfterLoadError: Boolean = false): Boolean {
         if (historyLoadError != null && !allowReplaceAfterLoadError) {
             status = "履歴の読み込みに失敗しているため保存を停止しています。バックアップから復元するか、履歴を全削除してください"
-            return
+            return false
         }
         val saved = runCatching { saveMessages(context, messages) }.getOrDefault(false)
         if (!saved) {
-            status = "会話履歴が保存上限（500万文字）を超えています。以前の保存データは保護しました。バックアップや履歴整理を行ってください"
+            status = "会話履歴が保存上限（500万文字）を超えています。以前の保存データは保護しました。入力文は送信せず入力欄に残しました。バックアップや履歴整理を行ってください"
+            return false
         }
+        return true
     }
     var isGenerating by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
@@ -1122,7 +1124,7 @@ private fun HiyoriApp() {
                                     } else if (text.isNotEmpty() && !isGenerating) {
                                         val userMessage = ChatMessage(nextId++.toInt(), text, true)
                                         messages.add(userMessage)
-                                        persistMessages()
+                                        if (persistMessages()) {
                                         draft = ""
                                         draftWasRestored = false
                                         isGenerating = true
@@ -1203,6 +1205,10 @@ private fun HiyoriApp() {
                                                 suppressNextReplySpeech = false
                                                 isGenerating = false
                                             }
+                                        }
+                                        } else {
+                                            messages.remove(userMessage)
+                                            nextId--
                                         }
                                     }
                                     }
