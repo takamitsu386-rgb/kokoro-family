@@ -869,8 +869,19 @@ private fun HiyoriApp() {
                 ttsReady = languageResult != TextToSpeech.LANG_MISSING_DATA &&
                     languageResult != TextToSpeech.LANG_NOT_SUPPORTED &&
                     languageResult != null
+                if (!ttsReady) {
+                    status = when (languageResult) {
+                        TextToSpeech.LANG_MISSING_DATA ->
+                            "日本語の音声データがありません。Androidのテキスト読み上げ設定から日本語音声を追加してください"
+                        TextToSpeech.LANG_NOT_SUPPORTED ->
+                            "この端末の読み上げエンジンは日本語に対応していません"
+                        else ->
+                            "日本語の読み上げ音声を準備できませんでした"
+                    }
+                }
             } else {
                 ttsReady = false
+                status = "読み上げエンジンを初期化できませんでした"
             }
         }
         ttsEngine = engine
