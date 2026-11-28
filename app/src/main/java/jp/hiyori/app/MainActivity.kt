@@ -853,6 +853,7 @@ private fun HiyoriApp() {
     }
     var isGenerating by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
+    var showClearDraftDialog by remember { mutableStateOf(false) }
     var showAdvancedSettings by remember { mutableStateOf(false) }
     var showHistoryTools by remember { mutableStateOf(false) }
     var pendingDeleteMessageId by remember { mutableStateOf<Int?>(null) }
@@ -1526,6 +1527,24 @@ private fun HiyoriApp() {
             },
             dismissButton = {
                 TextButton(onClick = { pendingDeleteMessageId = null }) { Text("キャンセル") }
+            }
+        )
+    }
+
+    if (showClearDraftDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDraftDialog = false },
+            title = { Text("入力中の文章を消去しますか？") },
+            text = { Text("保存されている下書きも消去されます。この操作は元に戻せません。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    draft = ""
+                    showClearDraftDialog = false
+                    status = "入力中の文章を消去しました"
+                }) { Text("消去する") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDraftDialog = false }) { Text("キャンセル") }
             }
         )
     }
@@ -2489,7 +2508,7 @@ private fun HiyoriApp() {
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedButton(
-                            onClick = { draft = "" },
+                            onClick = { showClearDraftDialog = true },
                             modifier = Modifier.weight(1f),
                             enabled = historyLoadError == null && draft.isNotEmpty() && !isGenerating && !continuousVoice
                         ) { Text("入力を消去") }
