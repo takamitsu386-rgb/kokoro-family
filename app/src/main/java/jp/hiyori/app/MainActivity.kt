@@ -1162,7 +1162,7 @@ private fun HiyoriApp() {
                                                     if (response.isNotBlank()) {
                                                         val reply = ChatMessage(nextId++.toInt(), response, false)
                                                         messages.add(reply)
-                                                        persistMessages()
+                                                        val replySaved = persistMessages()
                                                         if (ttsReady && speakReplies && !suppressNextReplySpeech) {
                                                             val speechText = prepareSpeechText(response)
                                                                 .ifBlank { "返事を画面に表示しました。内容を確認してください。" }
@@ -1188,6 +1188,9 @@ private fun HiyoriApp() {
                                                             } else {
                                                                 "${truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }}から返事が届きました"
                                                             }
+                                                        }
+                                                        if (!replySaved) {
+                                                            status = "返事は届きましたが、履歴への保存に失敗しました。バックアップや履歴整理を行ってください"
                                                         }
                                                     } else {
                                                         status = "返事を作れませんでした。文章は履歴に保存されています。最後の文章の「再送信」を押して、もう一度試してください"
