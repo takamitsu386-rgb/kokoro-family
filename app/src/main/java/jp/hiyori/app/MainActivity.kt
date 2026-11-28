@@ -78,6 +78,7 @@ import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.prompt.Generation
 import com.google.mlkit.genai.prompt.GenerativeModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -1169,6 +1170,9 @@ private fun HiyoriApp() {
                                                         shouldListenAgain = false
                                                     }
                                                 }
+                                            } catch (error: CancellationException) {
+                                                // 画面破棄などによるキャンセルは通常エラーに変換せず、呼び出し元へ伝える。
+                                                throw error
                                             } catch (error: Exception) {
                                                 status = "AI応答エラー: ${error.localizedMessage ?: "時間をおいて再試行してください"}"
                                                 continuousVoice = false
