@@ -514,19 +514,36 @@ private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String
     // 最新12件を優先し、履歴部分の合計文字数を12,000字以内に抑える。
     // 最新メッセージ自体が上限を超える場合は末尾を残し、直近の文脈を優先する。
     val conversationParts = ArrayList<JSONObject>()
-    var remainingChars = MAX_PROMPT_HISTORY_CHARS
+    // JSONエスケープ後の実際の文字数で上限を管理し、引用符や改行が多い履歴でも
+    // プロンプトが想定以上に膨らまないようにする。配列の括弧・区切り文字も予算に含める。
+    var remainingChars = MAX_PROMPT_HISTORY_CHARS - 2
     for (message in messages.asReversed().take(12)) {
         val role = if (message.isUser) "user" else "character"
-        if (remainingChars <= role.length) break
-        val availableTextChars = remainingChars - role.length
-        val text = if (message.text.length > availableTextChars) {
-            message.text.takeLast(availableTextChars)
-        } else {
-            message.text
+        val separatorChars = if (conversationParts.isEmpty()) 0 else 1
+        val availableChars = remainingChars - separatorChars
+        if (availableChars <= 0) break
+
+        fun encodedEntry(text: String): String =
+            JSONObject().put("role", role).put("content", text).toString()
+
+        if (encodedEntry("").length > availableChars) break
+        var low = 0
+        var high = message.text.length
+        while (low < high) {
+            val middle = (low + high + 1) / 2
+            val candidate = message.text.takeLast(middle)
+            if (encodedEntry(candidate).length <= availableChars) {
+                low = middle
+            } else {
+                high = middle - 1
+            }
         }
-        conversationParts.add(JSONObject().put("role", role).put("content", text))
-        remainingChars -= role.length + text.length + 1
-        if (text.length < message.text.length) break
+        if (low == 0 && message.text.isNotEmpty()) break
+        val selectedText = message.text.takeLast(low)
+        val entry = encodedEntry(selectedText)
+        conversationParts.add(JSONObject().put("role", role).put("content", selectedText))
+        remainingChars -= separatorChars + entry.length
+        if (low < message.text.length) break
     }
     val conversation = JSONArray()
     conversationParts.asReversed().forEach { conversation.put(it) }
