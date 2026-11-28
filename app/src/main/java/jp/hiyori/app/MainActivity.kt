@@ -662,6 +662,17 @@ private fun HiyoriApp() {
     var favoritesOnly by remember { mutableStateOf(false) }
     var searchResultIndex by remember { mutableStateOf(0) }
     val favoriteCount = messages.count { it.isFavorite }
+    val messagesSnapshot = messages.toList()
+    val backupSizeBytes = remember(messagesSnapshot) {
+        runCatching {
+            createBackup(messagesSnapshot).toByteArray(Charsets.UTF_8).size
+        }.getOrDefault(MAX_BACKUP_BYTES + 1)
+    }
+    val backupSizeSummary = if (backupSizeBytes > MAX_BACKUP_BYTES) {
+        "5MB超過"
+    } else {
+        "${"%.2f".format(Locale.JAPAN, backupSizeBytes / 1_048_576.0)}MB/5MB"
+    }
     val filtersActive = historyQuery.isNotBlank() || historySpeakerFilter != "すべて" || favoritesOnly
     val filteredMessages = messages.filter { message ->
         val matchesText = historyQuery.isBlank() ||
@@ -1418,9 +1429,18 @@ private fun HiyoriApp() {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "履歴 ${messages.size}件",
+                        text = "履歴 ${messages.size}件 · ${backupSizeSummary}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (backupSizeBytes > MAX_BACKUP_BYTES) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (backupSizeBytes > MAX_BACKUP_BYTES) {
+                    Text(
+                        text = "バックアップ上限（5MB）を超えています。古い会話を整理してください",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
                 }
                 if (continuousVoice) {
