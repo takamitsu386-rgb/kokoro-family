@@ -1034,7 +1034,9 @@ private fun HiyoriApp() {
                                                             }
                                                         } else {
                                                             status = if (speakReplies && !ttsReady) {
-                                                                "返事は届きましたが、日本語の読み上げ音声が準備できていません。Androidのテキスト読み上げ設定を確認してください"
+                                                                continuousVoice = false
+                                                                shouldListenAgain = false
+                                                                "返事は届きましたが、日本語の読み上げ音声が準備できていません。連続会話を停止しました。Androidのテキスト読み上げ設定を確認してください"
                                                             } else if (responseWasTruncated) {
                                                                 "返事が届きました（長文のため末尾を省略しました）"
                                                             } else {
