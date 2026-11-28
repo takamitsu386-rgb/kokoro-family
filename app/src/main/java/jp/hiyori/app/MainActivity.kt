@@ -863,6 +863,7 @@ private fun HiyoriApp() {
     var showResetCharacterSettingsDialog by remember { mutableStateOf(false) }
     var showClearAvatarDialog by remember { mutableStateOf(false) }
     var showAdvancedSettings by remember { mutableStateOf(false) }
+    var showCharacterPreview by remember { mutableStateOf(true) }
     var showHistoryTools by remember { mutableStateOf(false) }
     var pendingDeleteMessageId by remember { mutableStateOf<Int?>(null) }
     var pendingRestore by remember { mutableStateOf<List<ChatMessage>?>(null) }
@@ -1989,40 +1990,43 @@ private fun HiyoriApp() {
                     maxLines = 2
                 )
 
-                Text(
-                    "設定プレビュー（次の返答から反映）",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
-                )
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                OutlinedButton(
+                    onClick = { showCharacterPreview = !showCharacterPreview },
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    Text(if (showCharacterPreview) "設定プレビューを閉じる" else "設定プレビューを表示")
+                }
+                if (showCharacterPreview) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                     ) {
-                        Text(
-                            truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text("あなたの呼び方：${userCallName.ifBlank { "指定なし" }}")
-                        Text("話し方：$speakingStyle ／ 返答の長さ：$responseLength")
-                        Text(
-                            "性格・設定：${characterNotes.ifBlank { "未設定" }}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            "声の試聴文：${voicePreviewText.ifBlank { "標準文を使用" }}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            "設定は自動保存され、次回起動時も引き継がれます。",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text("あなたの呼び方：${userCallName.ifBlank { "指定なし" }}")
+                            Text("話し方：$speakingStyle ／ 返答の長さ：$responseLength")
+                            Text(
+                                "性格・設定：${characterNotes.ifBlank { "未設定" }}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                "声の試聴文：${voicePreviewText.ifBlank { "標準文を使用" }}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                "設定は自動保存され、次回起動時も引き継がれます。",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
