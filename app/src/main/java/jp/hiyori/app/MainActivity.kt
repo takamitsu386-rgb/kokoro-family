@@ -1725,6 +1725,12 @@ private fun HiyoriApp() {
                             else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                Text(
+                    "端末内AIは対応機種・Android・AICoreの状態によって利用可否が変わります。初回はモデルのダウンロードに通信が必要な場合があります。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
                 if (backupSizeBytes > MAX_BACKUP_BYTES) {
                     Text(
                         text = "バックアップ上限（5MB）を超えています。古い会話を整理してください",
