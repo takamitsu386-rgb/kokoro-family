@@ -1632,16 +1632,24 @@ private fun HiyoriApp() {
                     shouldListenAgain = false
                     isSpeaking = false
                     ttsEngine?.stop()
+                    val previousMessages = messages.toList()
+                    val previousHistoryLoadError = historyLoadError
                     messages.clear()
                     historyLoadError = null
-                    persistMessages(allowReplaceAfterLoadError = true)
-                    nextId = 0L
-                    historyQuery = ""
-                    historySpeakerFilter = "すべて"
-                    historyPeriodFilter = "すべて"
-                    favoritesOnly = false
-                    showClearDialog = false
-                    status = "会話履歴を削除しました"
+                    if (persistMessages(allowReplaceAfterLoadError = true)) {
+                        nextId = 0L
+                        historyQuery = ""
+                        historySpeakerFilter = "すべて"
+                        historyPeriodFilter = "すべて"
+                        favoritesOnly = false
+                        showClearDialog = false
+                        status = "会話履歴を削除しました"
+                    } else {
+                        messages.clear()
+                        messages.addAll(previousMessages)
+                        historyLoadError = previousHistoryLoadError
+                        showClearDialog = false
+                    }
                 }) { Text("削除") }
             },
             dismissButton = {
