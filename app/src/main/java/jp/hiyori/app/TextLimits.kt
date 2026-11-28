@@ -14,6 +14,18 @@ internal fun truncateAtUtf16Boundary(text: String, maxChars: Int): String {
     return text.substring(0, end)
 }
 
+// 末尾側を残して切り詰める場合も、先頭に孤立したLow Surrogateを残さない。
+internal fun takeLastAtUtf16Boundary(text: String, maxChars: Int): String {
+    if (maxChars <= 0) return ""
+    if (text.length <= maxChars) return text
+    var start = text.length - maxChars
+    if (start > 0 && Character.isLowSurrogate(text[start]) &&
+        Character.isHighSurrogate(text[start - 1])) {
+        start++
+    }
+    return text.substring(start)
+}
+
 internal fun limitGeneratedResponse(text: String): Pair<String, Boolean> {
     if (text.length <= MAX_MESSAGE_CHARS) return text to false
     val contentLimit = MAX_MESSAGE_CHARS - RESPONSE_TRUNCATION_NOTICE.length
