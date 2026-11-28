@@ -53,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -758,6 +759,13 @@ private fun HiyoriApp() {
     var historyLoadError by remember(context) { mutableStateOf(initialMessageLoad.error) }
     val model = remember { Generation.getClient() }
     val listState = rememberLazyListState()
+    val showJumpToLatest by remember {
+        derivedStateOf {
+            val info = listState.layoutInfo
+            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
+            info.totalItemsCount > 0 && lastVisible < info.totalItemsCount - 2
+        }
+    }
 
     var draft by remember(context) {
         mutableStateOf(
@@ -2362,6 +2370,17 @@ private fun HiyoriApp() {
                                 }
                             }
                         }
+                    }
+                }
+
+                if (showJumpToLatest && filteredMessages.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch { listState.animateScrollToItem(filteredMessages.lastIndex) }
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                    ) {
+                        Text("↓ 最新の会話へ")
                     }
                 }
 
