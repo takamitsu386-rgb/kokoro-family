@@ -370,7 +370,11 @@ private fun loadMessages(context: Context): MessageLoadResult {
     }
 }
 
-private fun saveMessages(context: Context, messages: List<ChatMessage>) {
+private fun saveMessages(
+    context: Context,
+    messages: List<ChatMessage>,
+    commitImmediately: Boolean = false
+): Boolean {
     val json = JSONArray()
     messages.forEach { message ->
         json.put(
@@ -382,8 +386,12 @@ private fun saveMessages(context: Context, messages: List<ChatMessage>) {
                 .put("isFavorite", message.isFavorite)
         )
     }
-    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        .edit().putString(MESSAGES_KEY, json.toString()).apply()
+    val editor = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().putString(MESSAGES_KEY, json.toString())
+    return if (commitImmediately) editor.commit() else {
+        editor.apply()
+        true
+    }
 }
 
 private fun backupChecksum(items: JSONArray): String {
@@ -1439,18 +1447,26 @@ private fun HiyoriApp() {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val restored = pendingRestore.orEmpty()
-                    messages.clear()
-                    messages.addAll(restored)
-                    historyLoadError = null
-                    persistMessages(allowReplaceAfterLoadError = true)
-                    nextId = (messages.maxOfOrNull { it.id }?.toLong() ?: -1L) + 1L
-                    historyQuery = ""
-                    historySpeakerFilter = "すべて"
-                    historyPeriodFilter = "すべて"
-                    favoritesOnly = false
-                    pendingRestore = null
-                    status = "${messages.size}件のメッセージを復元しました"
+                    val restored = pendingRestore ?: return@TextButton
+                    val saved = try {
+                        saveMessages(context, restored, commitImmediately = true)
+                    } catch (_: Exception) {
+                        false
+                    }
+                    if (saved) {
+                        messages.clear()
+                        messages.addAll(restored)
+                        historyLoadError = null
+                        nextId = (messages.maxOfOrNull { it.id }?.toLong() ?: -1L) + 1L
+                        historyQuery = ""
+                        historySpeakerFilter = "すべて"
+                        historyPeriodFilter = "すべて"
+                        favoritesOnly = false
+                        pendingRestore = null
+                        status = "${messages.size}件のメッセージを復元しました"
+                    } else {
+                        status = "復元データを端末に保存できませんでした。現在の履歴は変更していません"
+                    }
                 }) { Text("復元する") }
             },
             dismissButton = {
