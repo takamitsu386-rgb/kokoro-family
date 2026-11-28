@@ -1805,6 +1805,12 @@ private fun HiyoriApp() {
                     OutlinedButton(onClick = {
                         exportLauncher.launch(timestampedExportName("hiyori-backup", "json"))
                     }, modifier = Modifier.weight(1f)) { Text("バックアップ") }
+                Text(
+                    "機種変更するとき：古い端末で「バックアップ」を保存し、ファイルを新しい端末へコピーしてから、同じアプリの「復元」で読み込みます。復元すると新しい端末の現在の会話履歴は置き換わります。必要な履歴は先に保存してください。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                )
                     OutlinedButton(
                         onClick = {
                             continuousVoice = false
