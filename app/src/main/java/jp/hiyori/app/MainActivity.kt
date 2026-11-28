@@ -2206,10 +2206,12 @@ private fun HiyoriApp() {
                                         TextButton(
                                             onClick = {
                                                 // 最後の未返信メッセージのIDを再利用し、ID上限付近でも安全に再試行できるようにします。
+                                                val previousDraft = draft
                                                 nextId = message.id.toLong()
                                                 messages.removeAll { it.id == message.id }
                                                 persistMessages()
                                                 sendMessage(message.text)
+                                                draft = previousDraft
                                             },
                                             enabled = historyLoadError == null && !isGenerating && !continuousVoice,
                                             modifier = Modifier.padding(top = 0.dp)
