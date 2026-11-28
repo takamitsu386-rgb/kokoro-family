@@ -480,6 +480,8 @@ private fun historyPeriodStartMillis(period: String): Long? {
     val startDate = when (period) {
         "今日" -> today
         "昨日" -> today.minusDays(1)
+        "今月" -> today.withDayOfMonth(1)
+        "先月" -> today.minusMonths(1).withDayOfMonth(1)
         "過去7日間" -> today.minusDays(6)
         "過去30日間" -> today.minusDays(29)
         "過去90日間" -> today.minusDays(89)
@@ -489,10 +491,13 @@ private fun historyPeriodStartMillis(period: String): Long? {
 }
 
 private fun historyPeriodEndMillis(period: String): Long? {
-    if (period != "昨日") return null
-    return java.time.LocalDate.now(java.time.ZoneId.systemDefault())
-        .atStartOfDay(java.time.ZoneId.systemDefault())
-        .toInstant().toEpochMilli()
+    val today = java.time.LocalDate.now(java.time.ZoneId.systemDefault())
+    val endDate = when (period) {
+        "昨日" -> today
+        "先月" -> today.withDayOfMonth(1)
+        else -> return null
+    }
+    return endDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
 }
 
 private fun timestampedExportName(prefix: String, extension: String): String {
@@ -1850,7 +1855,11 @@ private fun HiyoriApp() {
                         }
                     }
                     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        listOf(listOf("すべて", "今日", "昨日"), listOf("過去7日間", "過去30日間", "過去90日間")).forEach { periods ->
+                        listOf(
+                            listOf("すべて", "今日", "昨日"),
+                            listOf("今月", "先月"),
+                            listOf("過去7日間", "過去30日間", "過去90日間")
+                        ).forEach { periods ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
