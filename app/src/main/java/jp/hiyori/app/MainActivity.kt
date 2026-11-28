@@ -2432,15 +2432,15 @@ private fun HiyoriApp() {
                     ) { Text("音声入力") }
                 }
 
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     OutlinedTextField(
                         value = draft,
                         onValueChange = { draft = truncateAtUtf16Boundary(it, MAX_MESSAGE_CHARS) },
                         enabled = historyLoadError == null,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("メッセージを入力") },
                         singleLine = false,
                         minLines = 1,
@@ -2452,15 +2452,21 @@ private fun HiyoriApp() {
                             }
                         )
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    OutlinedButton(
-                        onClick = { draft = "" },
-                        enabled = historyLoadError == null && draft.isNotEmpty() && !isGenerating && !continuousVoice
-                    ) { Text("消去") }
-                    Button(
-                        onClick = { sendMessage(null) },
-                        enabled = historyLoadError == null && draft.isNotBlank() && !isGenerating && !continuousVoice
-                    ) { Text("送信") }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { draft = "" },
+                            modifier = Modifier.weight(1f),
+                            enabled = historyLoadError == null && draft.isNotEmpty() && !isGenerating && !continuousVoice
+                        ) { Text("入力を消去") }
+                        Button(
+                            onClick = { sendMessage(null) },
+                            modifier = Modifier.weight(1f),
+                            enabled = historyLoadError == null && draft.isNotBlank() && !isGenerating && !continuousVoice
+                        ) { Text("送信") }
+                    }
                 }
 
                 Text(
