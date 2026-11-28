@@ -888,7 +888,6 @@ private fun HiyoriApp() {
                 // 音声認識画面が開いたまま読み上げをOFFにした場合、
                 // 戻ってきた認識結果を意図せず送信しないよう破棄する。
                 discardNextSpeechResult = true
-                isListening = false
             }
             ttsEngine?.stop()
             isSpeaking = false
@@ -1362,7 +1361,6 @@ private fun HiyoriApp() {
                         continuousVoice = false
                         shouldListenAgain = false
                         isSpeaking = false
-                        isListening = false
                         ttsEngine?.stop()
                         messages.removeAll { it.id == targetId }
                         saveMessages(context, messages)
@@ -1388,7 +1386,6 @@ private fun HiyoriApp() {
                     continuousVoice = false
                     shouldListenAgain = false
                     isSpeaking = false
-                    isListening = false
                     ttsEngine?.stop()
                     messages.clear()
                     saveMessages(context, messages)
@@ -1549,11 +1546,11 @@ private fun HiyoriApp() {
                     ) { Text("声を試す") }
                     OutlinedButton(
                         onClick = {
+                            if (isListening) discardNextSpeechResult = true
                             ttsEngine?.stop()
                             continuousVoice = false
                             shouldListenAgain = false
                             isSpeaking = false
-                            isListening = false
                             status = "読み上げと連続会話を停止しました"
                         },
                         enabled = ttsReady
@@ -2219,7 +2216,6 @@ private fun HiyoriApp() {
                                 if (isListening) discardNextSpeechResult = true
                                 continuousVoice = false
                                 shouldListenAgain = false
-                                isListening = false
                                 isSpeaking = false
                                 ttsEngine?.stop()
                                 status = "連続会話を停止しました"
