@@ -12,8 +12,8 @@ android {
         applicationId = "jp.hiyori.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 107
-        versionName = "0.13.58"
+        versionCode = 108
+        versionName = "0.13.59"
     }
 
     compileOptions {
