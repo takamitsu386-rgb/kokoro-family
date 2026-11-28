@@ -1601,7 +1601,7 @@ private fun HiyoriApp() {
         AlertDialog(
             onDismissRequest = { showClearDraftDialog = false },
             title = { Text("入力中の文章を消去しますか？") },
-            text = { Text("保存されている下書きも消去されます。この操作は元に戻せません。") },
+            text = { Text("保存済みの下書きも消去され、次回起動時にも復元されません。この操作は元に戻せません。") },
             confirmButton = {
                 TextButton(onClick = {
                     draft = ""
