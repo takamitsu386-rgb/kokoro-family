@@ -654,7 +654,7 @@ private fun buildHiyoriPrompt(messages: List<ChatMessage>, speakingStyle: String
             }
         }
         if (low == 0 && message.text.isNotEmpty()) break
-        val selectedText = message.text.takeLast(low)
+        val selectedText = takeLastAtUtf16Boundary(message.text, low)
         val entry = encodedEntry(selectedText)
         conversationParts.add(JSONObject().put("role", role).put("content", selectedText))
         remainingChars -= separatorChars + entry.length
