@@ -1008,12 +1008,22 @@ private fun HiyoriApp() {
                 val combinedText = listOf(draft.trim(), spokenText)
                     .filter { it.isNotBlank() }
                     .joinToString(" ")
-                draft = combinedText
+                val safeCombinedText = truncateAtUtf16Boundary(combinedText, MAX_MESSAGE_CHARS)
+                val voiceTextWasTruncated = safeCombinedText.length < combinedText.length
+                draft = safeCombinedText
                 if (continuousVoice || autoSendVoice) {
-                    status = "音声を認識しました。送信します"
-                    sendMessage(combinedText)
+                    status = if (voiceTextWasTruncated) {
+                        "音声入力が20,000文字を超えたため、末尾を省略して送信します"
+                    } else {
+                        "音声を認識しました。送信します"
+                    }
+                    sendMessage(safeCombinedText)
                 } else {
-                    status = "音声を文字に変換しました。内容を確認して送信してください"
+                    status = if (voiceTextWasTruncated) {
+                        "20,000文字を超えたため、音声入力の末尾を省略しました。内容を確認してください"
+                    } else {
+                        "音声を文字に変換しました。内容を確認して送信してください"
+                    }
                 }
             } else {
                 continuousVoice = false
