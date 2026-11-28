@@ -233,6 +233,9 @@ private fun speakTextInChunks(engine: TextToSpeech, text: String, utteranceId: S
         val id = if (isLast) "${utteranceId}_final" else "${utteranceId}_part_$index"
         val queueMode = if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
         if (engine.speak(chunk, queueMode, null, id) == TextToSpeech.ERROR) {
+            // 途中のチャンク登録に失敗した場合、先に登録済みの音声だけが
+            // 再生され続けないよう、残りの読み上げキューも停止する。
+            engine.stop()
             return TextToSpeech.ERROR
         }
     }
