@@ -1,6 +1,6 @@
 # ひよりちゃん Android
 
-現在のアプリバージョン: **0.13.44**（versionCode 92）
+現在のアプリバージョン: **0.13.47**（versionCode 96）
 
 Pixel 9向けの日本語会話キャラクターアプリ。外部の有料AI APIやAPIキーを使わず、対応端末ではGemini Nanoを端末内で実行する構成。
 
@@ -143,6 +143,7 @@ Gemini NanoはAICoreを通じて端末内で推論するため、会話ごとの
 履歴の絞り込みをしていないときも、会話総数とお気に入り登録数を一覧上部に表示します。
 
 - 会話履歴の検索・絞り込み中に、現在の位置と該当件数を表示し、「前へ」「次へ」で移動できます。
+- 会話履歴を「今日・過去7日間・過去30日間」で期間絞り込みでき、キーワード・発言者・お気に入り条件と組み合わせて検索できます。
 
 ## APKの取得
 1. GitHubの [Android debug build](https://github.com/takamitsu386-rgb/kokoro-family/actions/workflows/android-build.yml) を開く
