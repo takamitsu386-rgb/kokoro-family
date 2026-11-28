@@ -1523,9 +1523,15 @@ private fun HiyoriApp() {
                         shouldListenAgain = false
                         isSpeaking = false
                         ttsEngine?.stop()
-                        messages.removeAll { it.id == targetId }
-                        persistMessages()
-                        status = "メッセージを削除しました"
+                        val deleteIndex = messages.indexOfFirst { it.id == targetId }
+                        if (deleteIndex >= 0) {
+                            val deletedMessage = messages.removeAt(deleteIndex)
+                            if (persistMessages()) {
+                                status = "メッセージを削除しました"
+                            } else {
+                                messages.add(deleteIndex.coerceIn(0, messages.size), deletedMessage)
+                            }
+                        }
                     }
                     pendingDeleteMessageId = null
                 }) { Text("削除") }
@@ -2394,9 +2400,13 @@ private fun HiyoriApp() {
                                         onClick = {
                                             val favoriteIndex = messages.indexOfFirst { it.id == message.id }
                                             if (favoriteIndex >= 0) {
-                                                messages[favoriteIndex] = messages[favoriteIndex].copy(isFavorite = !message.isFavorite)
-                                                persistMessages()
-                                                status = if (!message.isFavorite) "お気に入りに保存しました" else "お気に入りを解除しました"
+                                                val previousMessage = messages[favoriteIndex]
+                                                messages[favoriteIndex] = previousMessage.copy(isFavorite = !message.isFavorite)
+                                                if (persistMessages()) {
+                                                    status = if (!message.isFavorite) "お気に入りに保存しました" else "お気に入りを解除しました"
+                                                } else {
+                                                    messages[favoriteIndex] = previousMessage
+                                                }
                                             }
                                         },
                                         enabled = historyLoadError == null,
