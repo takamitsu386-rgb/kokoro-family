@@ -1088,10 +1088,12 @@ private fun HiyoriApp() {
     ) { uri ->
         if (uri != null) {
             try {
+                val backupJson = createBackup(messages.toList())
+                val backupBytes = backupJson.toByteArray(Charsets.UTF_8).size
                 context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)
-                    ?.use { it.write(createBackup(messages)) }
+                    ?.use { it.write(backupJson) }
                     ?: throw IllegalArgumentException("保存先を開けませんでした")
-                status = "バックアップを保存しました"
+                status = "会話バックアップを保存しました（${messages.size}件・${String.format(Locale.JAPAN, "%,d", backupBytes)}バイト）"
             } catch (error: Exception) {
                 status = "保存できませんでした: ${error.localizedMessage ?: "不明なエラー"}"
             }
@@ -1133,10 +1135,12 @@ private fun HiyoriApp() {
                     truncateAtUtf16Boundary(userCallName.trim(), 20), speakingStyle, responseLength,
                     truncateAtUtf16Boundary(characterNotes, 500), truncateAtUtf16Boundary(voicePreviewText, 100)
                 )
+                val settingsJson = createCharacterSettingsBackup(settings)
+                val settingsBytes = settingsJson.toByteArray(Charsets.UTF_8).size
                 context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)
-                    ?.use { it.write(createCharacterSettingsBackup(settings)) }
+                    ?.use { it.write(settingsJson) }
                     ?: throw IllegalArgumentException("保存先を開けませんでした")
-                status = "キャラクター設定をJSON保存しました"
+                status = "キャラクター設定をJSON保存しました（${String.format(Locale.JAPAN, "%,d", settingsBytes)}バイト）"
             } catch (error: Exception) {
                 status = "設定の保存に失敗しました: ${error.localizedMessage ?: "不明なエラー"}"
             }
