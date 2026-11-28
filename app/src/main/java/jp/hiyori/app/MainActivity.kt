@@ -2504,7 +2504,11 @@ private fun HiyoriApp() {
                 Text(
                     text = "${draft.length}/20000文字",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (draft.length >= MAX_MESSAGE_CHARS * 9 / 10) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
                 )
 
