@@ -2691,6 +2691,12 @@ private fun HiyoriApp() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth()
                 )
+                Text(
+                    "アプリを閉じても、次回起動時に保存済みの下書きを復元できます。",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 if (historyLoadError != null) {
                     Text(
