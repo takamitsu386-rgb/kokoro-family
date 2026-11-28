@@ -17,12 +17,12 @@ android {
     ).all { !it.isNullOrBlank() }
 
     namespace = "jp.hiyori.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "jp.hiyori.app"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 114
         versionName = "0.13.65"
     }
