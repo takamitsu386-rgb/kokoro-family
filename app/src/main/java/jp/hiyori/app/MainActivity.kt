@@ -2177,6 +2177,7 @@ private fun HiyoriApp() {
                                                 status = if (!message.isFavorite) "お気に入りに保存しました" else "お気に入りを解除しました"
                                             }
                                         },
+                                        enabled = historyLoadError == null,
                                         modifier = Modifier.padding(top = 0.dp)
                                     ) { Text(if (message.isFavorite) "★ お気に入り解除" else "☆ お気に入り") }
                                     if (message.isUser && messages.lastOrNull()?.id == message.id) {
@@ -2188,7 +2189,7 @@ private fun HiyoriApp() {
                                                 persistMessages()
                                                 sendMessage(message.text)
                                             },
-                                            enabled = !isGenerating && !continuousVoice,
+                                            enabled = historyLoadError == null && !isGenerating && !continuousVoice,
                                             modifier = Modifier.padding(top = 0.dp)
                                         ) {
                                             Text("再送信", style = MaterialTheme.typography.labelSmall)
@@ -2281,7 +2282,7 @@ private fun HiyoriApp() {
                                     }
                                     TextButton(
                                         onClick = { pendingDeleteMessageId = message.id },
-                                        enabled = !isGenerating,
+                                        enabled = historyLoadError == null && !isGenerating,
                                         modifier = Modifier.padding(top = 0.dp)
                                     ) {
                                         Text("削除", style = MaterialTheme.typography.labelSmall)
@@ -2405,7 +2406,7 @@ private fun HiyoriApp() {
                     ) { Text("消去") }
                     Button(
                         onClick = { sendMessage(null) },
-                        enabled = draft.isNotBlank() && !isGenerating && !continuousVoice
+                        enabled = historyLoadError == null && draft.isNotBlank() && !isGenerating && !continuousVoice
                     ) { Text("送信") }
                 }
 
@@ -2416,6 +2417,14 @@ private fun HiyoriApp() {
                     modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
                 )
 
+                if (historyLoadError != null) {
+                    Text(
+                        text = "履歴の読み込みに失敗しました。元データ保護のため送信・編集を停止しています。バックアップ復元または履歴の全削除を選んでください。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
                 Text(
                     text = status,
                     style = MaterialTheme.typography.bodySmall,
