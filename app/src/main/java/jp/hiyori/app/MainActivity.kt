@@ -1261,7 +1261,16 @@ private fun HiyoriApp() {
             onDismissRequest = { pendingRestore = null },
             title = { Text("バックアップを復元しますか？") },
             text = {
-                Text(createRestoreSummary(pendingRestore.orEmpty(), truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }) + "\n\n現在の会話履歴を置き換えます。今の履歴を残す場合は、先にバックアップしてください。")
+                Text(
+                    createRestoreSummary(
+                        pendingRestore.orEmpty(),
+                        truncateAtUtf16Boundary(characterName.trim(), 20).ifBlank { "ひよりちゃん" }
+                    ) +
+                        "\n\n現在の履歴：" + messages.size + "件（お気に入り " + favoriteCount + "件）" +
+                        "\n復元後：" + pendingRestore.orEmpty().size + "件（お気に入り " +
+                        pendingRestore.orEmpty().count { it.isFavorite } + "件）" +
+                        "\n\n現在の会話履歴をすべて置き換えます。今の履歴を残す場合は、先にバックアップしてください。"
+                )
             },
             confirmButton = {
                 TextButton(onClick = {
