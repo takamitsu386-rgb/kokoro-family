@@ -2043,6 +2043,15 @@ private fun HiyoriApp() {
                                             ) {
                                                 Text("言い換える", style = MaterialTheme.typography.labelSmall)
                                             }
+                                            TextButton(
+                                                onClick = {
+                                                    draft = "直前の説明を、重要な点だけに絞って短くまとめてください。"
+                                                    status = "要点をまとめてもらう文章を入力欄に入れました"
+                                                },
+                                                enabled = !isGenerating && !continuousVoice
+                                            ) {
+                                                Text("要点だけ", style = MaterialTheme.typography.labelSmall)
+                                            }
                                         }
                                     }
                                     if (!message.isUser) {
