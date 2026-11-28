@@ -1025,6 +1025,18 @@ private fun HiyoriApp() {
                     }
                 }
             }
+            override fun onStop(utteranceId: String?, interrupted: Boolean) {
+                if (utteranceId?.startsWith("hiyori_") == true) {
+                    mainHandler.post {
+                        isSpeaking = false
+                        if (interrupted && latestContinuousVoice && continuousVoice) {
+                            continuousVoice = false
+                            shouldListenAgain = false
+                            status = "読み上げが中断されたため、連続会話を停止しました"
+                        }
+                    }
+                }
+            }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
                 if (utteranceId?.startsWith("hiyori_") == true) {
