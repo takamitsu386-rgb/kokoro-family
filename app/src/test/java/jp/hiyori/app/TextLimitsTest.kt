@@ -81,4 +81,35 @@ class TextLimitsTest {
             }
         }
     }
+    @Test
+    fun generatedResponseKeepsEmojiPairsAtEveryNearbyTruncationBoundary() {
+        val contentLimit = MAX_MESSAGE_CHARS - RESPONSE_TRUNCATION_NOTICE.length
+
+        for (prefixLength in contentLimit - 8..contentLimit + 2) {
+            val text = "A".repeat(prefixLength) + "😀😺🚀" + "B".repeat(100)
+            val result = limitGeneratedResponse(text)
+            val content = result.first.dropLast(RESPONSE_TRUNCATION_NOTICE.length)
+
+            assertTrue("result must be marked truncated at prefixLength=$prefixLength", result.second)
+            assertTrue("result must fit the limit at prefixLength=$prefixLength",
+                result.first.length <= MAX_MESSAGE_CHARS)
+            assertTrue("notice must be present at prefixLength=$prefixLength",
+                result.first.endsWith(RESPONSE_TRUNCATION_NOTICE))
+
+            var index = 0
+            while (index < content.length) {
+                val char = content[index]
+                if (Character.isHighSurrogate(char)) {
+                    assertTrue("high surrogate must have a matching low surrogate at prefixLength=$prefixLength",
+                        index + 1 < content.length && Character.isLowSurrogate(content[index + 1]))
+                    index += 2
+                } else {
+                    assertFalse("low surrogate must not be orphaned at prefixLength=$prefixLength",
+                        Character.isLowSurrogate(char))
+                    index++
+                }
+            }
+        }
+    }
+
 }
