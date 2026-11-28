@@ -832,6 +832,7 @@ private fun HiyoriApp() {
     }
     var isGenerating by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
+    var showAdvancedSettings by remember { mutableStateOf(false) }
     var pendingDeleteMessageId by remember { mutableStateOf<Int?>(null) }
     var pendingRestore by remember { mutableStateOf<List<ChatMessage>?>(null) }
     var pendingCharacterSettings by remember { mutableStateOf<CharacterSettings?>(null) }
@@ -1654,6 +1655,14 @@ private fun HiyoriApp() {
                     )
                 }
 
+                OutlinedButton(
+                    onClick = { showAdvancedSettings = !showAdvancedSettings },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    Text(if (showAdvancedSettings) "設定・管理を閉じる" else "設定・管理を開く")
+                }
+
+                if (showAdvancedSettings) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1966,6 +1975,8 @@ private fun HiyoriApp() {
                             else -> "端末に合わせる"
                         })
                     }
+                }
+
                 }
 
                 if (messages.isNotEmpty()) {
