@@ -2001,6 +2001,12 @@ private fun HiyoriApp() {
                     minLines = 1,
                     maxLines = 2
                 )
+                Text(
+                    "試聴文は「声を試す」を押したときだけ端末の読み上げ機能で再生され、AIへの会話メッセージには送信されません。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                )
 
                 OutlinedButton(
                     onClick = { showCharacterPreview = !showCharacterPreview },
