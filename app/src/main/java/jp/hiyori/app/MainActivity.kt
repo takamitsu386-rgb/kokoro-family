@@ -2586,7 +2586,7 @@ private fun HiyoriApp() {
                         OutlinedButton(
                             onClick = { autoSendVoice = !autoSendVoice },
                             modifier = Modifier.weight(1f),
-                            enabled = !isGenerating
+                            enabled = !isGenerating && !continuousVoice
                         ) { Text(if (autoSendVoice) "音声の自動送信ON" else "音声の自動送信OFF") }
                     }
                     Text(
