@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -1833,6 +1834,15 @@ private fun HiyoriApp() {
                         },
                         enabled = ttsReady && !continuousVoice && !isGenerating && !isListening && !isSpeaking
                     ) { Text("声を試す") }
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                context.startActivity(Intent(Settings.ACTION_TTS_SETTINGS))
+                            } catch (_: ActivityNotFoundException) {
+                                status = "この端末では読み上げ設定を開けませんでした"
+                            }
+                        }
+                    ) { Text("声の設定") }
                     OutlinedButton(
                         onClick = {
                             if (isGenerating) suppressNextReplySpeech = true
