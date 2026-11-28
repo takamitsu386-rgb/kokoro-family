@@ -1850,7 +1850,7 @@ private fun HiyoriApp() {
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                "表示：${filteredMessages.size} / ${messages.size}件",
+                                "表示：${filteredMessages.size} / ${messages.size}件\n位置：${if (filteredMessages.isEmpty()) 0 else searchResultIndex + 1} / ${filteredMessages.size}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f)
