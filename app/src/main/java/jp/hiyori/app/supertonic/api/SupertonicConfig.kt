@@ -22,7 +22,7 @@ data class SupertonicConfig(
     val storageDir: String,
     val inferenceSteps: Int = 8,
     val defaultLang: String = "ja",
-    val defaultVoice: SupertonicVoice = SupertonicVoice.M1,
+    val defaultVoice: SupertonicVoice = SupertonicVoice.F1,
     val defaultSpeed: Float = 1.0f,
     val huggingFaceBaseUrl: String = DEFAULT_HF_URL,
 ) {
